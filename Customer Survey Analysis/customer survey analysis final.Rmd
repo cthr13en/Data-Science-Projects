@@ -1,0 +1,1019 @@
+---
+title: "Customer Satisfaction Survey Report"
+author: "Cristian T"
+subtitle: Sentiment Analysis
+---
+
+# Abstract: Customer Satisfaction Survey Report
+The Customer Satisfaction Survey was conducted to gather feedback from consumers, agents, brokers, or enrollment counselors (ABC) regarding their experience with "The Company". The survey aims to identify areas of improvement and understand users' likelihood of recommending "The Company" to others.
+
+This report provides a detailed analysis of customer feedback data from "The Company" collected from January 1, 2024, to April 16, 2024. Utilizing advanced text mining and sentiment analysis techniques, we extracted significant insights to understand the prevailing sentiments, themes, and customer concerns. The analysis involved several stages: initial word frequency exploration through word clouds, sentiment analysis using the Bing lexicon, and detailed n-gram analysis to uncover key phrases influencing customer perceptions. We also employed log-odds ratio calculations to quantify how specific terms varied significantly across different customer segments. Additionally, sentiment distributions were examined across different time frames and recommendation likelihood ratings, offering a dynamic view of evolving customer sentiments. 
+
+The findings from this analysis are crucial for identifying actionable strategies to enhance customer satisfaction and improve overall service quality at "The Company".
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+# Data Preprocessing
+
+The analysis began with preparing the survey data, which involved importing, cleaning, and formatting the data to ensure accuracy and usability. Key steps included standardizing column names, formatting date columns, and converting relevant fields to appropriate data formats to facilitate quantitative analysis. To ensure the data's integrity and our findings' reliability, we carefully managed missing values and created derived variables as needed. This structured approach to data handling and analysis ensures that the insights derived from the survey are based on reliable and clearly understood data, setting the stage for practical recommendations to enhance customer satisfaction at "The Company".
+```{r, echo=FALSE}
+suppressMessages(library(janitor)) # For data cleaning
+suppressMessages(library(tidyverse)) # For data manipulation and visualization
+suppressMessages(library(skimr)) # For data summary
+suppressMessages(library(lubridate)) # For date-time operations
+suppressMessages(library(ggplot2)) # For creating plots
+suppressMessages(library(hunspell)) # For spell checking
+
+yh <- read_csv("/Customer Satisfaction Survey.csv", col_names = TRUE )
+
+#glimpse(yh)
+
+# To ensure data integrity, the first row of the dataset, containing column names, was removed 
+
+# Remove the first row
+yh <- yh[-1, ]
+
+# Rename columns for clarity and consistency
+yh <- yh %>% rename(start_date = "Start Date", end_date = "End Date", 
+    respondent_role = "Are you a Consumer, Agent, Broker or Enrollment Counselor?",
+    recommendation_likelihood = "How likely is it that you would recommend the company to a friend or colleague?",
+    suggestions = "How can we improve your experience with our company?"
+  )
+```
+
+```{r}
+
+
+
+
+# Convert the date columns ("start_date" and "end_date") to the appropriate date format
+yh$start_date <- mdy_hm(yh$start_date)
+yh$end_date <- mdy_hm(yh$end_date)
+
+# Convert "recommendation_likelihood" to number to enable quantitative analysis
+yh$recommendation_likelihood <- as.numeric(yh$recommendation_likelihood)
+
+# Look at the dataset for distribution and missing values
+skim(yh)
+
+# We see that respondent_role has 20 missing responses, which gives us a 99% completion rate. Since this is a small portion of the dataset, we can choose to keep these at the moment and remove as necessary from the analysis without significantly impacting the results.
+# "Suggestions" is missing 618, which still gives us an 80% completion rate. We will replace the NA's with no_suggestion
+yh <- yh %>% 
+  mutate(suggestions = replace_na(suggestions, "no_suggestion")) 
+
+#  After cleaning up these NA, we noticed some more na's that were manually entered, we will adjust for those as well
+ yh <- yh %>% 
+   mutate(suggestions = ifelse(suggestions %in% c("na", "Na", "n/a", "N/A", "N/a", "N-a", "nada", "nothing", "Nothing.", "Nothing",  "not sure.", "Not sure", "Not sure.", "none", "None", "None!",  "idk", "I don’t know.", "I don’t know", "IDK", "Idk", "n-a", "?", "No", "no", "No comment", "No suggestions", "No suggestion", "No reply", "Nope", "C"), "no_suggestion", suggestions))
+
+# We isolated the "respondent_role" column for further examination to see if we could determine the respondent. However, the comments were too vague to define clearly.
+missing_values <- yh[is.na(yh$respondent_role), ]
+
+# Create a new binary variable named "respondent," to differentiate consumers from other respondents
+yh <- yh %>% mutate(respondent = ifelse(respondent_role == "Consumer", 1, 0))
+
+
+
+############### New DataFrame ############### 
+# To maintain the integrity of the original dataset while implementing changes, a duplicate dataset named was created
+data <- yh
+
+```
+
+
+
+# Summarize the Data
+### Recommendation Likelihood
+```{r}
+summary(data$recommendation_likelihood)
+
+# Visualize the summary with a Histogram
+ggplot(data, aes(x = recommendation_likelihood)) +
+  geom_histogram(binwidth = 2, fill = "lightseagreen", color = "black") +
+  labs(
+    title = "Distribution of Recommendation Likelihood Scores",
+    x = "Recommendation Likelihood Score",
+    y = "Frequency"
+  ) +
+  theme_minimal()
+```
+
+
+
+The analysis of the "recommendation_likelihood" variable reveals a range of responses among survey participants. The minimum score was 0, indicating the lowest possible recommendation likelihood, while the median score was 10, suggesting that half of the respondents rated their likelihood to recommend "The Company" as the highest possible. The mean score of approximately 9.088 reflects an overall positive sentiment among respondents. Despite this positive average, the first quartile value at 8 points was for some respondents with more moderate recommendation levels. However, the third quartile and the maximum score of 10 indicate that a substantial portion of respondents are highly likely to recommend "The Company". This distribution suggests that while the majority are very positive, a segment of the population with reservations could be targeted for improvement.
+
+### Respondent Composition
+```{r}
+# Count occurrences of "Consumer (1)" and "ABC (0)"
+respondent_counts <- table(data$respondent)
+#  336 2768 
+
+# Calculate proportion
+respondent_percent <- prop.table(respondent_counts) * 100
+#        0        1 
+# 10.82474 89.17526 
+
+# Create a DF for percentages
+respondent_percentages <- c(10.8, 89.2)
+
+# Create labels for the pie chart
+labels <- c("ABC", "Consumers")
+
+# Create a pie chart
+pie(respondent_percentages, labels = labels, col = c("lightseagreen", "lightgreen"),
+    main = "Proportion of Survey Respondents by Role")
+```
+
+The survey included responses from 2768 "Consumers" and 336 "Agents, Brokers, or Enrollment Counselors," accounting for 89.2% and 10.8% of the total responses, respectively. This demographic breakdown is essential for interpreting the data, as consumers likely offer insights based on direct experiences. In contrast, Agents, Brokers, and Enrollment Counselors (ABC) might provide feedback influenced by their professional interactions and observations of service quality.
+
+```{r, echo=FALSE}
+
+### Implications for Service Improvement
+# Understanding the variation in recommendation likelihood between different groups, such as Consumers and ABC, can highlight specific areas where service improvements are necessary. For instance, if ABCs consistently provide lower recommendation scores than consumers, it may pinpoint service aspects that need enhancement to support these intermediary roles better.
+
+
+#May not do this after all
+# Exclude missing values from respondent_role
+# respondent <- data$respondent_role[!is.na(data$respondent_role)]
+
+#May not do this after all
+# recommendation <- data %>% 
+  # Remove any rows where the respondent didn't answer the question
+  # filter(!suggestions == "") %>% 
+  # select(recommendation_likelihood)
+
+```
+
+
+
+
+# Distribution of respondents over weeks and months
+### Weekly Participation Trends
+```{r}
+# Extract week number and month number from 'start_date'
+data <- data %>%
+  mutate(week_number = week(start_date),
+         month_number = month(start_date))
+
+
+# Create a bar plot showing distribution of respondents by week
+ggplot(data, aes(x = factor(week_number), fill = respondent_role)) +
+  geom_bar() +
+  labs(title = "Respondent Role Distribution by Week", x = "Week", y = "Count") +
+  scale_fill_manual(values = c("lightseagreen", "lightgreen")) + 
+  theme_minimal()
+```
+
+Throughout the survey period, we observed notable fluctuations in the number of respondents identifying as "ABC" or "Consumer." While most respondents are Consumers, the participation of the ABC group showed some consistency, fluctuating from week to week but maintaining a steady presence.
+
+### Monthly Participation Comparison
+```{r}
+# Create a bar plot showing distribution of respondents by month
+ggplot(data, aes(x = factor(month_number), fill = respondent_role)) +
+  geom_bar() +
+  labs(title = "Respondent Role Distribution by Week", x = "Week", y = "Count") +
+  scale_fill_manual(values = c("lightseagreen", "lightgreen")) + 
+  theme_minimal()
+
+
+
+```
+
+Across the first four months of the survey, we saw a balanced engagement, with 75 respondents identifying as "ABC" and 134 as "Consumer" in the first Month. However, in Month 2, a significant surge in consumer participation is observed, due to a technical issue, with 936 respondents identifying as "Consumer" compared to 86 as "ABC." This trend continues into Month 3, where 1034 respondents identify as "Consumer" and 100 as "ABC." Conversely, Month 4 sees a decrease in respondents compared to previous months, suggesting a potential fluctuation in respondent engagement or external factors influencing participation rates.
+
+
+
+
+# Text Analysis
+
+### Data Preparation
+```{r}
+suppressMessages(library(mdsr)) # For spatial analysis
+suppressMessages(library(tidytext)) # For text mining and analysis
+
+# Standardizing the text data to ensure consistency and encourage a meaningful analysis by converting all text to lowercase
+data$suggestions <- tolower(data$suggestions)
+
+# Tidy suggestions
+data_text_analysis <-  data %>%
+  unnest_tokens(word, suggestions) %>% 
+  count(word, sort = TRUE) %>% 
+  anti_join(stop_words)
+
+# Print Tidy Text
+data_text_analysis
+
+# We noticed that the 'suggestions' column contained NA values, which could potentially interfere with our analysis. To address this, We replaced these NA values with "no_suggestion
+# data_text_analysis$word <- replace_na(data_text_analysis$word, "no_suggestion")
+
+# double_check <- data_text_analysis %>%
+#   arrange(desc(word))
+
+# Inspecting the data we still have some rows showing typed NA values
+data_text_analysis %>% filter(word == "na" | word == "n/a" | word == "nada" | word == "no")
+
+# Replace typed NA values with "no_suggestion"
+data_text_analysis <- data_text_analysis %>%
+  mutate(word = ifelse(word %in% c("na", "n/a", "nada"), "no_suggestion", word)) %>% 
+  group_by(word) %>%
+  summarize(total_count = sum(n)) %>%
+  arrange(desc(total_count))
+```
+
+The initial step in our analysis involved standardizing the text data to ensure consistency across the dataset. This was achieved by converting all text to lowercase and cleaning the 'suggestions' column by removing any unnecessary characters or spaces. This tidying process helped eliminate inconsistencies and simplified the data structure. Additionally, we addressed missing values in the 'suggestions' column by replacing NA values with "no_suggestion," ensuring that incomplete data did not skew our analysis. These data-cleansing efforts enhanced the quality of our dataset and set a solid foundation for meaningful analysis.
+
+### Word Frequency Analysis
+```{r}
+# Filter for the top 20 words, excluding "No suggestion"
+top_words <- data_text_analysis %>%
+  filter(word != "no_suggestion") %>%
+  group_by(word) %>%
+  summarise(total_count = sum(total_count)) %>%
+  slice_max(order_by = total_count, n = 20)
+
+#top_words
+
+# Create a bar plot for top 20
+ggplot(top_words, aes(x = reorder(word, -total_count), y = total_count)) +
+  geom_bar(stat = "identity", fill = "lightseagreen") +
+  labs(x = "Word", y = "Frequency", title = "Top 20 Words (excluding no-suggestion)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Following data preprocessing, we analyzed the frequency of words used in the survey responses. We filtered out the top 20 words, excluding "no_suggestion," to identify the most prominent words. The resulting 'top_words' dataset highlighted words such as "helpful," "service," "experience," and "customer," indicating a strong focus on customer service experiences. We visualized these frequencies using a bar plot, which provided a clear and intuitive representation of the data, making it easier to interpret and understand respondents' primary concerns and praises.
+
+### Exploration of Less Common Words
+```{r}
+set.seed(17755)
+# Filter for the bottom 20 words
+lower_words <- data_text_analysis %>%
+  group_by(word) %>%
+  # summarise(total_count = sum(n)) %>%
+  ungroup() %>%
+  slice_min(order_by = total_count, n = 20) %>% 
+  sample_n(size = 20)
+
+# Create a bar plot with a random sample of words mentioned once 
+ggplot(lower_words, aes(x = reorder(word, -total_count), y = total_count)) +
+  geom_bar(stat = "identity", fill = "lightseagreen") +
+  labs(x = "Word", y = "Frequency", title = "Random Sample of Lesser Used Words") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+In addition to analyzing common words, we also explored lesser-used words to uncover specific challenges or concerns that, while mentioned infrequently, still hold significant importance. By randomly sampling 20 words with lower frequencies, the 'random_sample' dataset revealed terms such as 'low,' 'smoother,' 'enjoy,' and 'troubled.' The rarity of these words might indicate niche issues or exceptionally specific praises that are not widespread but could be crucial for individual cases or minor yet impactful aspects of service.
+
+For instance, the word 'troubled' might highlight specific difficulties or dissatisfaction experienced by some customers, suggesting areas that could benefit further investigation and improvement. Conversely, words like 'enjoy' and 'smoother' reflect positive experiences, indicating aspects of the service that are particularly appreciated and could be emphasized more in our communications and offerings. Additionally, terms like 'clueless' and 'impossible' might point to significant frustrations or barriers faced by customers, underscoring the need for clearer information or more accessible service solutions.
+
+### Balanced Word Frequency Analysis
+```{r, echo=FALSE}
+# Define the percentage of words to exclude from the top and bottom
+# excluded_percentage <- 0.10 
+
+# Calculate the total number of words
+# total_words <- nrow(data_text_analysis)
+
+# Calculate the number of words to exclude from the top and bottom
+# excluded_words <- round(excluded_percentage * total_words)
+
+# Obtain a random sample of words from the middle
+# set.seed(1775)
+# middle_sample <- data_text_analysis %>%
+#   slice((excluded_words):(total_words - excluded_words)) %>%
+#   sample_frac(0.2, replace = FALSE) %>% 
+  # sample_n(30, replace = FALSE)
+
+
+# Plot the random sample of middle words
+# ggplot(middle_sample, aes(x = reorder(word, -total_count), y = total_count)) +
+#   geom_bar(stat = "identity", fill = "lightseagreen") +
+#   labs(x = "Word", y = "Frequency", title = "Random Sample of Middle Used Words") +
+#   theme_minimal() +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+```{r}
+# Exclude words that occur only once
+filtered_data <- data_text_analysis %>%
+  filter(total_count > 1)
+
+# Find a suitable frequency range for "middle frequency"
+suitable_range <- filtered_data %>%
+  filter(total_count >= 10 & total_count <= 60)
+
+# Sample words from this range
+set.seed(1775)  # for reproducibility
+middle_words <- sample_n(suitable_range, size = 30)
+
+# Display the sampled middle-frequency words
+#middle_words %>% arrange(desc(total_count))
+
+# Plot to display distribution to get a better sense of middle
+# ggplot(suitable_range, aes(x = total_count)) +
+#   geom_histogram(bins = 10, fill = "blue", color = "black") +
+#   labs(title = "Adjusted Distribution of Word Frequencies", x = "Total Count", y = "Frequency")
+
+ggplot(middle_words, aes(x = reorder(word, -total_count), y = total_count)) +
+  geom_bar(stat = "identity", fill = "lightseagreen") +
+  labs(x = "Word", y = "Frequency", title = "Random Sample of Middle Used Words") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+We also sampled 30 words from the middle range of word frequencies to ensure a comprehensive view of the feedback. This 'middle_words' dataset provided insights into issues or feedback that are neither extremely common nor rare, with words such as "issues," "wonderful," and "perfect." The infrequency of these words might indicate niche issues or exceptionally specific praises that are not widespread but could be crucial for individual cases or minor yet impactful aspects of service. For example, "Tax" could indicate discussions about financial aspects or confusion about tax implications related to credits and costs. "Frustrating" and "Confusing" point to potential areas where customers feel lost or uncertain.
+
+
+# Words by Week and Month
+### Weekly Analysis
+```{r}
+# Group by week and count the top words
+top_words_week <- data %>%
+  unnest_tokens(word, suggestions) %>% 
+  anti_join(stop_words) %>%
+  mutate(word = replace_na(word, "no_suggestion")) %>%
+  filter(word != "no_suggestion") %>%
+  count(week_number, word, sort = TRUE) %>%
+  group_by(week_number) %>%
+  top_n(3)
+
+# Plot for top words by week
+ggplot(top_words_week, aes(x = week_number, y = n, fill = word)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(title = "Top 3 Words by Week",
+       x = "Week", y = "Frequency", fill = "Word") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Analyzing top words by week offers insights into the evolving themes in our customer satisfaction survey. During Week 9, "helpful" was the most frequent term, appearing 40 times, indicating a solid appreciation for helpful service during this period. In Week 13, "service" dominated the discussions, mentioned 38 times, suggesting a focus on service quality. We visualized these trends using a stacked bar chart, which clearly depicts the fluctuation of word frequencies over time, allowing us to pinpoint specific weeks where certain aspects of service were more salient. 
+
+
+### Monthly Analysis
+```{r}
+# Grouping by month
+top_words_month <- data %>%
+  unnest_tokens(word, suggestions) %>% 
+  anti_join(stop_words) %>%
+  mutate(word = replace_na(word, "no_suggestion")) %>%
+  filter(word != "no_suggestion") %>%
+  count(month_number, word, sort = TRUE) %>%
+  group_by(month_number) %>%
+  top_n(5)
+
+# Plot for top words by month
+ggplot(top_words_month, aes(x = month_number, y = n, fill = word)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(title = "Top 5 Words by Month",
+       x = "Week", y = "Frequency", fill = "Word") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+Extending our analysis to a monthly aggregation helps us identify broader trends and patterns. By grouping survey responses by month, we observed that "helpful" consistently ranked among the top words, underscoring its ongoing importance in customer experiences. Other terms like "service," "experience," and "customer" also appeared frequently, highlighting key areas that consistently impact customer perceptions. The visualization of these top words by month, presented in a stacked bar chart, provides a comprehensive overview of the predominant themes throughout the survey period.
+
+
+
+
+# Words and Ratings Analysis
+This analysis aimed to uncover common themes or concerns expressed by customers, segmented by their likelihood of recommending "The Company". By examining text responses from the survey, we identified the top four words mentioned for each recommendation likelihood giving us a total of 85 responses.
+```{r}
+
+# Count the words by recommendation
+word_count_by_recommendation <- data %>%
+  unnest_tokens(word, suggestions) %>% 
+  anti_join(stop_words) %>%
+  filter(word != "no_suggestion") %>%
+  count(recommendation_likelihood, word, sort = TRUE) %>%
+  group_by(recommendation_likelihood) %>%
+  top_n(4)
+
+# View the top words for each rating
+word_count_by_recommendation
+
+```
+
+
+
+### High Satisfaction (Rating 10)
+Customers with the highest satisfaction levels frequently mentioned words such as "helpful" (263 mentions), "service" (200 mentions), "experience" (141 mentions), and "customer" (102 mentions). This indicates that positive experiences related to helpfulness, service quality, and overall customer experience are pivotal in driving high recommendation scores.
+
+### Moderate Satisfaction (Ratings 7 to 9)
+In the moderately high satisfaction category, words like "helpful," "service," "customer," and "time" are prevalent. For instance, "helpful" was mentioned 41 times at a rating of 8 and 34 times at a rating of 9, while "service" appeared 29 times at a rating of 8 and 28 times at a rating of 9. This suggests that while these customers are generally satisfied, there is a consistent emphasis on the quality of service and timeliness, which could be areas for further enhancement to boost satisfaction levels.
+
+### Lower Satisfaction (Ratings 4 to 6)
+Customers who gave ratings between 4 and 6 expressed concerns with terms like "insurance" (11 mentions at rating 6), "plan" (8 mentions at rating 6), and "website" (8 mentions at rating 5). These terms indicate specific areas where customers face challenges, such as understanding insurance plans or navigating the website, pointing to a need for clearer communication and improved user interface design.
+
+### Dissatisfaction (Ratings 0 to 3)
+The lowest ratings are associated with words that highlight significant dissatisfaction, such as "confusing," "coverage," "deductibles," and "website." For example, "insurance" and "website" were mentioned 4 times each at a rating of 0, suggesting critical areas that require immediate attention to address fundamental service issues.
+
+
+```{r, fig.width=12, fig.height=12 }
+# Create a faceted bar plot
+ggplot(word_count_by_recommendation, aes(x = word, y = n, fill = recommendation_likelihood)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Word Count by Recommendation Type",
+       x = "Word",
+       y = "Count",
+       fill = "Recommendation Type") +
+  facet_wrap(~recommendation_likelihood, scales = "free") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+```{r}
+# Above facet with plots seperated
+plots <- word_count_by_recommendation %>%
+  split(.$recommendation_likelihood) %>%
+  lapply(function(data) {
+    plot <- ggplot(data, aes(x = word, y = n, fill = recommendation_likelihood)) +
+      geom_bar(stat = "identity") +
+      labs(
+        title = paste("Word Count for Recommendation Type:", unique(data$recommendation_likelihood)),
+        x = "Word",
+        y = "Count",
+        fill = "Recommendation Type"
+      ) +
+      theme_minimal() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    print(plot)
+  })
+```
+
+```{r}
+
+```
+
+
+To effectively communicate these findings, we created a faceted bar plot that visualizes the distribution of word counts across different recommendation likelihood ratings. Each facet represents a specific rating category, with bars depicting the count of words mentioned. This visual format allows for easy comparison and identification of common themes across different ratings, providing clear insights into how word usage correlates with customer satisfaction and recommendation likelihood.
+
+```{r, include=FALSE}
+# Experimental NPS, or Net Promoter Score
+
+# Create a function to categorize scores into Promoters, Passives, and Detractors
+categorize_scores <- function(score) {
+  if (score >= 9 & score <= 10) {
+    return("Promoters")
+  } else if (score >= 7 & score <= 8) {
+    return("Passives")
+  } else if (score >= 0 & score <= 6) {
+    return("Detractors")
+  } else {
+    return("Invalid Score") # Handle scores outside the specified range
+  }
+}
+
+# Apply the function to each score in the recommendation_scores vector
+data$grouped_scores <- sapply(data$recommendation_likelihood, categorize_scores)
+
+# Use the table() function to get counts of each category
+category_counts <- table(data$grouped_scores)
+
+# Print the counts
+category_counts
+
+# Plot a bar chart of the counts
+barplot(category_counts, main = "Counts of Promoters, Passives, and Detractors", 
+        xlab = "Category", ylab = "Count", col = "skyblue", ylim = c(0, max(category_counts) + 10))
+
+# Count the words by recommendation
+word_count_by_recommendation_NPS <- data %>%
+  unnest_tokens(word, suggestions) %>% 
+  anti_join(stop_words) %>%
+  filter(word != "no_suggestion") %>%
+  count(grouped_scores, word, sort = TRUE) %>%
+  group_by(grouped_scores) %>%
+  top_n(6)
+
+# View the top words for each rating
+word_count_by_recommendation_NPS
+
+# Create a faceted bar plot
+ggplot(word_count_by_recommendation_NPS, aes(x = word, y = n, fill = grouped_scores)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Word Count by Recommendation Type",
+       x = "Word",
+       y = "Count",
+       fill = "Recommendation Type") +
+  facet_wrap(~grouped_scores, scales = "free") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Promoters: The most frequently mentioned words by customers categorized as Promoters include "helpful," "service," "experience," "customer," "time," and "agent." This suggests that customers who are Promoters often mention positive aspects of the service experience, such as helpfulness, quality of service, and positive interactions with customer service agents.
+
+# Passives: Customers categorized as Passives commonly mention words like "helpful," "service," "time," and "customer." However, the frequency of these words is lower compared to Promoters. Passives may have a more neutral sentiment, with fewer positive or negative mentions compared to Promoters or Detractors.
+
+# Detractors: The most frequently mentioned words by customers categorized as Detractors include "insurance," "people," "website," "chat," and "plan." These words may indicate areas of dissatisfaction or concerns raised by customers who are Detractors. For example, mentions of "insurance" could suggest issues related to insurance products or services, while mentions of "website" or "chat" could indicate problems with online platforms or customer service channels.
+```
+
+# Sentiment Analysis
+Sentiment analysis, also known as opinion mining, is a powerful tool for discerning the prevailing sentiments within textual data—whether positive, negative, or neutral. This technique scrutinizes textual content to extract subjective information such as opinions, attitudes, and emotional expressions, categorizing the text's sentiment to provide valuable insights into customer feedback, social media chatter, and overall brand sentiment.
+
+### Process and Findings
+```{r}
+
+# Bring in the Bing lexicon
+my_bing <- get_sentiments("bing")
+#View(my_bing)
+
+data_sentiment_analysis <- data %>%
+  unnest_tokens(word, suggestions) %>% 
+  anti_join(stop_words) %>%
+  filter(word != "no_suggestion") %>%
+   inner_join(my_bing)
+
+
+# data_sentiment_analysis %>% 
+#   select(word, sentiment)
+
+# Group by sentiment and count the occurrences
+sentiment_counts <- data_sentiment_analysis %>%
+  count(sentiment) 
+# sentiment     b
+# negative	513			
+# positive	1993
+
+# Create a bar plot
+ggplot(sentiment_counts, aes(x = sentiment, y = n, fill = sentiment)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Sentiment Analysis",
+       x = "Sentiment",
+       y = "Count") +
+  scale_fill_manual(values = c("lightgreen", "lightseagreen")) +
+  theme_minimal()
+
+data_sentiment_analysis_counts <- data_sentiment_analysis %>%
+  count(word, sentiment, sort = TRUE) %>%
+  group_by(sentiment) %>%
+  top_n(10) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, n))
+
+
+  ggplot(data_sentiment_analysis_counts, aes(word, n, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, scales = "free_y") +
+  labs(y = "Contribution to sentiment",
+       x = NULL) +
+  coord_flip() +
+    scale_fill_manual(values = c("lightgreen", "lightseagreen"))
+```
+We conducted sentiment analysis on our customer feedback data using the Bing lexicon. This process involved preprocessing the data by tokenizing and removing stop words to focus on meaningful terms. Our analysis identified 1,993 positive and 513 negative sentiments within the dataset, indicating a predominantly positive customer experience. Among the positive sentiments, words like "helpful," "excellent," and "friendly" were most prevalent, underscoring the aspects of our service that customers appreciate the most. Conversely, negative sentiments were frequently associated with words such as "issues," "complaints," and "confusing," pointing to areas where customers encounter difficulties.
+
+### Sentiment Distribution by Respondent Type
+```{r}
+# Term count by rating Recommendation
+recommendation_sentiment_words <- data_sentiment_analysis %>% 
+  count(recommendation_likelihood, word, sentiment, sort=T)
+#recommendation_sentiment_words 
+
+# Recommendation
+recommendation_words <- data_sentiment_analysis %>% 
+  count(recommendation_likelihood, sentiment, sort=T)
+#recommendation_words 
+
+# Respondent
+respondent_sentiment_words <- data_sentiment_analysis %>% 
+  count(respondent, word, sentiment, sort=T) %>% 
+   group_by(respondent, word, sentiment) %>%
+  filter(!is.na(respondent)) %>% 
+  ungroup()
+respondent_sentiment_words
+
+# Plot the sentiment distribution for each respondent using facet_wrap
+ggplot(respondent_sentiment_words, aes(x = sentiment, y = n, fill = sentiment)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~ respondent, scales = "free", labeller = labeller(respondent = c("1" = "Consumers", "0" = "ABC"))) +
+  labs(title = "Sentiment Distribution by Respondent", x = "Sentiment", y = "Frequency") +
+  theme_minimal() +
+  scale_fill_manual(values = c("lightseagreen", "lightgreen")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+We began examining the sentiment distribution across different types of respondents. By plotting the frequency of positive and negative sentiments for each respondent group, we observed how sentiments vary among different demographics. Positive sentiments such as "helpful," "friendly," and "excellent" were consistently mentioned across all recommendation likelihood categories, indicating strong areas of satisfaction. Conversely, negative sentiments, including "issue," "annoyed," and "awful," were less prevalent but significant, highlighting specific areas of dissatisfaction or concern that need addressing.
+
+### Sentiment Trends Over Time
+```{r}
+# Sentiment counts by week
+sentiment_by_week <- data_sentiment_analysis %>%
+  count(week_number, sentiment)
+
+# Plot sentiment by week
+ggplot(sentiment_by_week, aes(x = week_number, y = n, fill = sentiment)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Sentiment Distribution by Week", x = "Week", y = "Frequency") +
+  theme_minimal() +
+  scale_fill_manual(values = c("lightseagreen", "lightgreen")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Sentiment counts by month
+sentiment_by_month <- data_sentiment_analysis %>%
+  count(month_number, sentiment)
+
+# Plot sentiment by week
+ggplot(sentiment_by_month, aes(x = month_number, y = n, fill = sentiment)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Sentiment Distribution by Month", x = "Month", y = "Frequency") +
+  theme_minimal() +
+  scale_fill_manual(values = c("lightseagreen", "lightgreen")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Further, we analyzed sentiment trends weekly to capture short-term fluctuations and monthly to understand longer-term trends. This dual approach allowed us to identify both immediate and gradual changes in sentiment. While positive sentiments remained relatively consistent, we noted occasional spikes in negative sentiments, which could correlate with specific events or changes in service delivery. Understanding these patterns helps us pinpoint when and why customer sentiments might shift, enabling timely interventions.
+
+### Word Frequency and Recommendation Likelihood
+```{r}
+# Count the words by recommendation and sentiment
+word_count_by_recommendation_sentiment <- data_sentiment_analysis %>%
+  group_by(recommendation_likelihood, word, sentiment) %>%
+  count() %>%
+  arrange(recommendation_likelihood, desc(n)) %>%
+  group_by(recommendation_likelihood) %>%
+  top_n(4) #originally 4
+```
+```{r, fig.width=12, fig.height=10 }
+# Create a faceted bar plot
+ggplot(word_count_by_recommendation_sentiment, aes(x = word, y = n, fill = sentiment)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Word Count by Recommendation Type",
+       x = "Word",
+       y = "Count",
+       fill = "Sentiment") +
+  facet_wrap(~ recommendation_likelihood, scales = "free") +
+  theme_minimal() +
+  scale_fill_manual(values = c("lightseagreen", "lightgreen")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+#{r, include=FALSE}
+# Experimental NPS, or Net Promoter Score
+
+data_sentiment_analysis_NPS <- data %>%
+  unnest_tokens(word, suggestions) %>% 
+  anti_join(stop_words) %>%
+  filter(word != "no_suggestion") %>%
+   inner_join(my_bing)
+
+
+# Group by sentiment and count the occurrences
+sentiment_counts_NPS <- data_sentiment_analysis %>%
+  count(sentiment) 
+
+
+# Count the words by recommendation and sentiment
+word_count_by_recommendation_sentiment_NPS <- data_sentiment_analysis_NPS %>%
+  group_by(grouped_scores, word, sentiment) %>%
+  count() %>%
+  arrange(grouped_scores, desc(n)) %>%
+  group_by(grouped_scores) %>%
+  top_n(7) # Originally 7
+  #head(5)
+
+# Create a faceted bar plot
+ggplot(word_count_by_recommendation_sentiment_NPS, aes(x = word, y = n, fill = sentiment)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Word Count by Recommendation Type",
+       x = "Word",
+       y = "Count",
+       fill = "Sentiment") +
+  facet_wrap(~ grouped_scores, scales = "free") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Detractors: The most frequently mentioned words by customers categorized as Detractors include "helpful," "easier," "friendly," "confusing," and "helped." Interestingly, some positive words like "helpful" and "friendly" are mentioned, but they are outweighed by negative words like "confusing" and "difficult."
+
+# Passives: Passives also mention words like "helpful," "friendly," and "easier," but with lower frequency compared to Detractors. Negative words like "confusing," "issues," and "improvement" are also mentioned by Passives, indicating a mix of positive and negative sentiments.
+
+# Promoters: Customers categorized as Promoters most frequently mention positive words like "helpful," "excellent," "amazing," "friendly," and "helped." These customers express positive sentiments about their experiences, with words like "improvement" indicating opportunities for further enhancement even in positive feedback.
+```
+```{r, fig.width=12, fig.height=10 }
+# Create a faceted bar plot
+ggplot(word_count_by_recommendation_sentiment, aes(x = word, y = n, fill = sentiment)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Word Count by Recommendation Type",
+       x = "Word",
+       y = "Count",
+       fill = "Sentiment") +
+  facet_wrap(~ recommendation_likelihood, scales = "free") +
+  theme_minimal() +
+  scale_fill_manual(values = c("lightseagreen", "lightgreen")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+Lastly, we delved into the correlation between word frequency and recommendation likelihood. Positive sentiments such as "helpful," "friendly," and "excellent" were predominantly associated with higher recommendation likelihoods, reinforcing the importance of these attributes in driving customer satisfaction and loyalty. On the other hand, negative sentiments like "issue," "annoyed," and "awful" were more common among customers with lower recommendation likelihoods, suggesting critical areas for improvement to enhance overall customer experience.
+
+### Sentiment Analysis and Visualization
+```{r}
+suppressMessages(library(wordcloud)) # For creating word clouds
+suppressMessages(library(reshape2)) # For reshaping data
+
+data_sentiment_analysis %>%
+  dplyr::count(word) %>%
+  with(wordcloud(word, n, max.words = 100))
+```
+Word Cloud: By examining the most prominent words in the word cloud, we identified which aspects of our service are most frequently mentioned by customers. This helps us understand what factors are top-of-mind for our customers, whether they are issues, praises, or general inquiries.
+```{r}
+
+data_sentiment_analysis %>%
+  count(word, sentiment, sort = TRUE) %>%
+  acast(word ~ sentiment, value.var = "n", fill = 0) %>%
+  comparison.cloud(colors = c("gray20", "gray80"),
+                     max.words = 100)
+```
+Comparison Cloud: The comparison cloud allowed us to see not just which words are common, but how they are perceived sentimentally. For example, words like "helpful" and "friendly" appear larger in the positive sections, it reinforces their positive impact on customer satisfaction. Conversely, words like "issues" and "confusing" are prominent in the negative sections, it signals areas where improvements are necessary.
+
+
+### Challenges and Considerations
+Despite its effectiveness, sentiment analysis faces challenges such as interpreting contextual nuances, data quality, and domain specificity. The inherent subjectivity of sentiment analysis can introduce biases, as different individuals may interpret sentiments differently. Additionally, the analysis may struggle with nuanced language, sarcasm, slang, or cultural contexts, potentially leading to misinterpretations.
+
+
+
+
+
+
+# Bigram Analysis
+In this section, we conducted a bigram analysis to delve deeper into the relationships between words in our dataset. Bigrams, which are pairs of adjacent words, offer insights into common phrases and contexts that single-word analysis might miss. This can be useful for understanding nuanced expressions or specific service aspects customers mention.
+```{r}
+suppressMessages(library(textdata)) # For text data preprocessing
+suppressMessages(library(igraph)) # For graph analysis
+suppressMessages(library(ggraph)) # For graph visualization
+suppressMessages(library(tidygraph)) # For tidy graph manipulation
+
+data_bigrams <- data %>%
+  unnest_tokens(bigram, suggestions, token = "ngrams", n = 2) %>% 
+  filter(bigram != "no_suggestion") %>% 
+  filter(bigram != "no suggestions") %>% 
+  filter(bigram != "no improvements") %>% 
+  filter(bigram != "no recommendations") %>%
+  count(bigram, sort = TRUE)
+  
+
+# data_bigrams # untidy
+
+
+bigrams_separated <- data_bigrams %>%
+  separate(bigram, c("word1", "word2"), sep = " ")
+
+bigrams_filtered <- bigrams_separated %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word)
+
+# Bigram counts:
+bigram_counts <- bigrams_filtered %>%
+  count(word1, word2, sort = TRUE)
+
+#bigram_counts
+
+bigrams_united <- bigrams_filtered %>%
+  unite(bigram, word1, word2, sep = " ")
+
+bigrams_united #tidy
+```
+### Notable Bigrams 
+From the insights from this Bigram analysis, the following stand out: "Customer Service" was mentioned 143 times and was the most frequently mentioned Bigram, indicating that customer service is a central theme in the feedback. "Extremely Helpful" (36 mentions), suggesting customers felt very supported. "Wait Time" (28 mentions) and "Wait Times" (19 mentions) reflect concerns about the time customers spend waiting, which could be a critical area for service improvement. "User Friendly" (21 mentions) may suggest that usability is a significant factor in customer satisfaction. "Excellent Service" (14 mentions) highlights positive experiences and satisfaction with the service provided.
+
+### Graphical Analysis of Bigram Relationships
+In our analysis, we utilized a graph generated from the top 100 frequent word pairs in the dataset to provide a visual representation of the relationships and patterns within the text data. This graph is not only a tool for visualization but also a powerful analytical instrument that helps decode the complexities of customer feedback.
+```{r}
+# Prepare the top_words data
+top_words <- bigrams_filtered %>%
+  arrange(desc(n)) %>%
+  slice_head(n = 150)
+
+# Create nodes data frame
+nodes <- top_words %>%
+  select(word1, word2) %>%
+  distinct() %>%
+  unlist() %>%
+  unique() %>%
+  tibble(name = .)
+
+# Create edges data frame
+edges <- top_words %>%
+  rename(from = word1, to = word2)
+
+# Create tbl_graph
+tbl_graph <- tbl_graph(nodes = nodes, edges = edges, directed = FALSE)
+```
+```{r, fig.width=12, fig.height=12 }
+ggraph(tbl_graph, layout = "fr") +
+  geom_edge_link(arrow = arrow(type = "open"), alpha = 0.2) +
+  geom_node_point(aes(), alpha = 0.3) +  # Ensure 'n' is available in nodes data
+  geom_node_text(aes(label = name), repel = TRUE, max.overlaps = Inf) +
+  theme(panel.background = element_rect(fill = "transparent"))
+```
+
+The graph, generated from the top 150 frequent word pairs in the dataset, uses a node size where each node represents a word pair, with the node's size corresponding to the frequency of occurrence of that bigram. Larger nodes indicate word pairs mentioned more frequently, highlighting their prominence in the dataset. The edges between nodes illustrate the relationships between word pairs. These connections help us understand how different themes or topics relate to customer feedback. Clusters of closely connected nodes suggest central themes or topics within the dataset. These clusters can reveal concentrated areas of discussion or sentiment, providing insights into what aspects of the service are receiving the most attention. Directional lines between nodes indicate the flow of conversation or context between word pairs. This helps in understanding the sequence or progression of topics in customer interactions.
+
+By examining the graph, we can identify key insights into users' most frequently discussed topics or sentiments. For example, positive sentiments like "excellent service" and "user friendly" appear as prominent nodes, suggesting these are strong areas of satisfaction among customers. Conversely, any negative sentiments or concerns would also be visible, allowing us to pinpoint areas needing improvement.
+
+
+# Trigram Analysis
+In this phase of our analysis, we focused on trigrams, sequences of three consecutive words, to understand better the frequent word sequences used in customer feedback. 
+
+```{r}
+# For consistency dropped similar phrases as Bigrams
+data_trigrams <- data %>%
+  unnest_tokens(trigram, suggestions, token = "ngrams", n = 3) %>% 
+  filter(trigram != "no_suggestion") %>% 
+  filter(trigram != "no improvements needed") %>% 
+  filter(trigram != "no improvement needed	") %>% 
+  filter(trigram != "no improvement necessary") %>%
+  filter(trigram != "have no suggestions") %>%
+  count(trigram, sort = TRUE)
+  
+# data_trigrams #untidy
+
+trigrams_separated <- data_trigrams %>%
+  separate(trigram, c("word1", "word2", "word3"), sep = " ")
+
+trigrams_filtered <- trigrams_separated %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word) %>% 
+  filter(!word3 %in% stop_words$word)
+
+# new bigram counts:
+trigram_counts <- trigrams_filtered %>%
+  count(word1, word2, word3, sort = TRUE)
+
+# trigram_counts
+
+trigrams_united <- trigrams_filtered %>%
+  unite(trigram, word1, word2, word3, sep = " ")
+
+trigrams_united # Tidy
+```
+### Notable Trigrams 
+"Excellent Customer Service" (12 mentions)  frequently appeared in the dataset, highlighting it as a key strength. Customers who experience excellent service are likely to mention it explicitly, reinforcing the importance of maintaining high service standards. "Customer Service Rep" (10 mentions) and "Customer Service Agent" (9 mentions) suggest a focus on the roles of individual service representatives, indicating areas where personal interaction plays a crucial role in customer satisfaction. "Shorter Wait Times" (9 mentions) indicates that wait times are a significant concern for customers. "Amazing Customer Service" (4 mentions) reinforces the impact of outstanding service on customer perceptions.
+
+### Graphical Analysis of Trigrams Relationships
+```{r}
+
+# Filter the trigrams_filtered data to include only the top N frequent words
+top_words_tri <- trigrams_filtered %>%
+  arrange(desc(n)) %>%
+  slice_head(n = 100) 
+
+
+
+```
+```{r, fig.width=12, fig.height=12 }
+# Create a tbl_graph from your trigram data 
+tbl_graph <- as_tbl_graph(top_words_tri) 
+  # Plot the graph 
+ggraph(tbl_graph, layout = "fr") +
+  geom_edge_link(arrow = arrow(type = "open"), alpha = 0.2) +
+  geom_node_point(aes(), alpha = 0.3) +
+  geom_node_text(aes(label = name), repel = TRUE) +
+  theme(panel.background = element_rect(fill = "transparent"))
+```
+
+
+We also generated the top 100 frequent trigrams in the dataset to provide a visual representation of the relationships and patterns within the text data, following the same format as the previous bigram graph.
+
+
+# Sentiment Analysis of Top/Bottom Bigrams
+In this section of our analysis, we calculated sentiment scores for the top 25 bigrams using the AFINN lexicon, a widely recognized tool in natural language processing (NLP) and text mining tasks. The AFINN lexicon assigns sentiment scores to words ranging from -5 (highly negative) to +5 (highly positive), with zero representing a neutral sentiment.
+```{r}
+
+afinn <- lexicon_afinn()
+
+# Function to calculate sentiment score of a phrase
+calculate_sentiment <- function(phrase, lexicon) {
+  words <- unlist(strsplit(phrase, " "))
+  scores <- lexicon %>% 
+    filter(word %in% words) %>%
+    summarise(total_score = sum(value, na.rm = TRUE))  # Use 'value' instead of 'score'
+  if(nrow(scores) > 0) {
+    return(scores$total_score)
+  } else {
+    return(0)
+  }
+}
+
+# Apply the function to bigrams in bigrams_united
+data_bigrams_sentiment <- bigrams_united %>%
+  mutate(sentiment_score = sapply(bigram, calculate_sentiment, lexicon = afinn))
+
+# Filter the top 25 bigrams by absolute sentiment score
+top_bigrams <- data_bigrams_sentiment %>%
+  arrange(desc(abs(sentiment_score))) %>%
+  slice_head(n = 25)
+
+# Create a bar graph for the top 25 bigrams
+ggplot(top_bigrams, aes(x = reorder(bigram, sentiment_score), y = sentiment_score, fill = sentiment_score)) +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 65, hjust = 1)) +
+  labs(x = "Bigram", y = "Sentiment Score", title = "Top 25 Bigrams by Sentiment Score") +
+  scale_fill_gradient()
+
+# Filter the bottom 25 bigrams by absolute sentiment score
+bottom_bigrams <- data_bigrams_sentiment %>%
+  arrange(sentiment_score) %>%
+  slice_head(n = 25)
+
+# Create a bar graph for the top 25 bigrams
+ggplot(bottom_bigrams, aes(x = reorder(bigram, sentiment_score), y = sentiment_score, fill = sentiment_score)) +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 65, hjust = 1)) +
+  labs(x = "Bigram", y = "Sentiment Score", title = "Bottom 25 Bigrams by Sentiment Score") +
+  scale_fill_gradient()
+```
+For each bigram, the sentiment score was computed by summing the sentiment scores of the individual words within the bigram. This method allows us to gauge the overall sentiment conveyed by each phrase. Several bigrams stood out due to their high positive sentiment scores, indicating strong positive feedback themes in the customer responses. For example, "amazing super" and "super amazing" both scored a 7, reflecting extremely positive sentiments. "helpful wonderful" and "amazing helping" each scored a 6, further underscoring the positive experiences expressed by customers.
+
+
+The most negative sentiment scores, which highlight critical pain points in customer experiences. Notable among these are "threatening illnesses" (-4) and "experience maddening" (-3), suggesting severe distress or dissatisfaction related to health issues or service experiences. "applications suck" (-3) and "program sucks" (-3) indicate strong displeasure with the website usability or application processes. "glitched badly" (-3) and "confusing process" (-2) reflect technical problems or unclear procedures that could be leading to customer frustration.
+
+# Sentiment Analysis of Top/Bottom Trigrams
+In our final analysis, we calculated sentiment scores for the top and bottom 25 trigrams based on the AFINN lexicon and visualized them. 
+```{r}
+
+
+# Function to calculate sentiment score of a phrase
+calculate_sentiment <- function(phrase, lexicon) {
+  words <- unlist(strsplit(phrase, " "))
+  scores <- lexicon %>% 
+    filter(word %in% words) %>%
+    summarise(total_score = sum(value, na.rm = TRUE))  # Use 'value' instead of 'score'
+  if(nrow(scores) > 0) {
+    return(scores$total_score)
+  } else {
+    return(0)
+  }
+}
+
+
+
+# Apply the function to trigrams_united
+data_trigrams_sentiment <- trigrams_united %>%
+  mutate(sentiment_score = sapply(trigram, calculate_sentiment, lexicon = afinn))
+
+# Filter the top trigrams by absolute sentiment score
+top_trigrams <- data_trigrams_sentiment %>%
+  arrange(desc(sentiment_score)) %>%
+  slice_head(n = 25)
+
+# Create a bar graph for the top 25 trigrams
+ggplot(top_trigrams, aes(x = reorder(trigram, sentiment_score), y = sentiment_score, fill = sentiment_score)) +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 65, hjust = 1)) +
+  labs(x = "Trigram", y = "Sentiment Score", title = "Top 25 Trigrams by Sentiment Score") +
+  scale_fill_gradient()
+
+# Filter the bottom 25 trigrams by absolute sentiment score
+bottom_trigrams <- data_trigrams_sentiment %>%
+  arrange(sentiment_score) %>%  # This sorts by sentiment score in ascending order
+  slice_head(n = 25) 
+
+# Create a bar graph for the bottom 25 bigrams
+ggplot(bottom_trigrams, aes(x = reorder(trigram, sentiment_score), y = sentiment_score, fill = sentiment_score)) +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 65, hjust = 1)) +
+  labs(x = "Trigram", y = "Sentiment Score", title = "Bottom 25 Trigrams by Sentiment Score") +
+  scale_fill_gradient2()
+```
+
+
+
+
+
+In this analysis segment, we focused on the top 25 trigrams that received the highest positive sentiment scores according to the AFINN lexicon. Notable High-Scoring Trigrams included “Amazing super friendly” (score: 9), “Super friendly courteous,” and “Amazing helping solve” (score: 7 each). “Outstanding customer service” (score: 5, mentioned twice). Notable Low-Scoring Trigrams that stood out due to their exceptionally low sentiment scores related to critical health-related concerns were “Traumatic brain injury” (score: -5) and “Life threatening illnesses” (score: -4) impacting customer experiences. “Insurance applications suck” and “Insurance it’s awful” (score: -3 each): Reflect strong displeasure with insurance-related processes. “Chat program sucks” and “Window glitched badly” (score: -3 each) highlight technical problems and frustrations with online interfaces.
+
+
+# Conclusion of the Customer Satisfaction Survey Analysis
+Our extensive analysis of the Customer Satisfaction Survey conducted from January 1, 2024, to April 16, 2024, has provided profound insights into the experiences and perceptions of consumers and ABCs interacting with "The Company". Utilizing advanced text mining and sentiment analysis techniques, we have uncovered significant themes, sentiments, and areas of concern that are pivotal in shaping customer satisfaction and service quality.
+
+### Comprehensive Findings
+Positive Sentiments and Service Strengths: Our analysis revealed strong positive sentiments, with the highest satisfaction levels frequently mentioning words such as "helpful," "service," "experience," and "customer." We also saw this same sentiment reflected by phrases such as "extremely helpful," and "excellent service." Of course, this was expanded with our trigram analysis when we saw phrases such as "excellent customer service," "amazing super friendly," and "helpful wonderful service." These findings affirm the effectiveness of our customer service strategies and the positive impact of our team's interactions with customers.
+
+### Identified Challenges and Areas for Improvement 
+We also identified critical areas of dissatisfaction and concern, especially regarding health services, technical issues, and application processes. Notable negative sentiments included "confusing," "coverage," "deductibles," and "website." while bigrams highlighted "Wait Time" and "Wait Times" reflect concerns about the time customers spend waiting, which could be a critical area for service improvement. "User Friendly" may suggest that usability is a significant factor in customer satisfaction. We also had critical health-related concerns impacting customer experiences, displeasure with insurance-related processes, and technical problems and frustrations with online interfaces, indicating significant customer frustrations.
+
+Trends and Patterns: The sentiment trends over time and the analysis of word frequencies helped us understand how sentiments and specific topics fluctuated across different periods and respondent groups. This dynamic view aids in recognizing how customer experiences evolve with changes in our service delivery.
+
+Strategic Implications and Recommendations:
+Enhance Technical Support and User Interfaces: Address the technical issues highlighted in the feedback, such as glitches in the chat program and difficulties with the insurance application process. Improving these aspects can significantly enhance user experience and reduce frustration.
+
+Streamline Health-Related Services and Communication: Increase support and improve communication clarity regarding health services to ensure that customers dealing with health-related inquiries receive comprehensive and empathetic assistance.
+
+Implement Continuous Training: Develop ongoing training programs for customer service personnel that emphasize technical proficiency, problem-solving skills, and empathy to ensure high-quality and consistent service across all interactions.
+
+Regular Monitoring and Responsive Adaptation: Establish a routine for continuously monitoring customer feedback using advanced analytics. This will help assess the effectiveness of implemented changes and stay responsive to new trends or emerging issues in customer satisfaction.
+
+### Future Analysis Possibilities
+Deeper Dive into Emerging Themes: Future analyses could focus on deeper explorations of newly emerging themes or sudden shifts in sentiment identified in this survey. For instance, analyzing the root causes of spikes in negative sentiments related to specific service aspects could yield actionable insights.
+
+Longitudinal Analysis: Conducting a longitudinal study to track changes in customer satisfaction over time could help understand long-term trends and the impact of implemented changes. This could involve periodic re-assessment using similar analytical techniques to monitor progress and identify new areas of concern.
+
+Integration with Behavioral Data: Combining the findings from this text analysis with behavioral data, such as customer usage patterns and service interaction logs, could provide a more holistic view of customer behavior and satisfaction.
+
+### Potential Hypotheses for Future Testing
+Impact of Response Time on Satisfaction: We hypothesize that implementing improvements in areas identified through customer feedback analysis will lead to increased satisfaction levels and higher recommendation likelihood ratings. Specifically, improvements in customer service, response times, or website usability may positively impact customer perceptions and their likelihood of recommending "The Company" to others. This hypothesis could be tested through targeted interventions and subsequent survey data analysis to assess satisfaction level changes over time.
+
+Effectiveness of Personalized Communication: We hypothesize that enhancing communication strategies, such as providing clearer information about insurance processes, plan details, and enrollment procedures, and adding more personalized communication strategies will result in improved satisfaction levels among customers and potentially decrease the frequency of negative sentiments related to "confusing processes" and "poor communication. By addressing common concerns and providing transparent, easy-to-understand communication, "The Company" can enhance customer experiences and increase recommendation likelihood. This hypothesis could be tested through communication campaigns or informational sessions, followed by customer feedback analysis to measure satisfaction level changes.
+
+Correlation Between Service Training and Customer Feedback: Enhanced training programs for customer service representatives could potentially correlate with decreased negative feedback and increased positive sentiments. Providing additional support and resources to Agents, Brokers, and Enrollment Counselors (ABC) will positively impact customer satisfaction levels. By equipping ABCs with the necessary tools, training, and support to assist customers effectively, "The Company" can improve overall service quality and enhance the customer experience. This hypothesis could be tested through targeted interventions aimed at ABCs, such as training programs or resource materials
+
