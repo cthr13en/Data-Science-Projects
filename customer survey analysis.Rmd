@@ -2,22 +2,14 @@
 title: "Customer Satisfaction Survey Report"
 subtitle: "Sentiment Analysis"
 author: "Cristian T"
-date: last-modified
-format: 
-   html:
-     df-print: paged
-     embed-resources: true
-editor: 
-  markdown: 
-    wrap: 72
 ---
 
 # Abstract: Customer Satisfaction Survey Report
-The Customer Satisfaction Survey was conducted to gather feedback from consumers, agents, brokers, or enrollment counselors (ABC) regarding their experience with YHI. The survey aims to identify areas of improvement and understand users' likelihood of recommending YHI to others.
+The Customer Satisfaction Survey was conducted to gather feedback from consumers, agents, brokers, or enrollment counselors (ABC) regarding their experience with "The Comany". The survey aims to identify areas of improvement and understand users' likelihood of recommending "The Comany" to others.
 
-This report provides a detailed analysis of customer feedback data from YHI collected from January 1, 2024, to April 16, 2024. Utilizing advanced text mining and sentiment analysis techniques, we extracted significant insights to understand the prevailing sentiments, themes, and customer concerns. The analysis involved several stages: initial word frequency exploration through word clouds, sentiment analysis using the Bing lexicon, and detailed n-gram analysis to uncover key phrases influencing customer perceptions. We also employed log-odds ratio calculations to quantify how specific terms varied significantly across different customer segments. Additionally, sentiment distributions were examined across different time frames and recommendation likelihood ratings, offering a dynamic view of evolving customer sentiments. 
+This report provides a detailed analysis of customer feedback data from "The Comany" collected from January 1, 2024, to April 16, 2024. Utilizing advanced text mining and sentiment analysis techniques, we extracted significant insights to understand the prevailing sentiments, themes, and customer concerns. The analysis involved several stages: initial word frequency exploration through word clouds, sentiment analysis using the Bing lexicon, and detailed n-gram analysis to uncover key phrases influencing customer perceptions. We also employed log-odds ratio calculations to quantify how specific terms varied significantly across different customer segments. Additionally, sentiment distributions were examined across different time frames and recommendation likelihood ratings, offering a dynamic view of evolving customer sentiments. 
 
-The findings from this analysis are crucial for identifying actionable strategies to enhance customer satisfaction and improve overall service quality at YHI.
+The findings from this analysis are crucial for identifying actionable strategies to enhance customer satisfaction and improve overall service quality at "The Comany".
 
 
 
@@ -27,7 +19,8 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 
 # Data Preprocessing
 
-The analysis began with preparing the survey data, which involved importing, cleaning, and formatting the data to ensure accuracy and usability. Key steps included standardizing column names, formatting date columns, and converting relevant fields to appropriate data formats to facilitate quantitative analysis. To ensure the data's integrity and our findings' reliability, we carefully managed missing values and created derived variables as needed. This structured approach to data handling and analysis ensures that the insights derived from the survey are based on reliable and clearly understood data, setting the stage for practical recommendations to enhance customer satisfaction at YHI.
+The analysis began with preparing the survey data, which involved importing, cleaning, and formatting the data to ensure accuracy and usability. Key steps included standardizing column names, formatting date columns, and converting relevant fields to appropriate data formats to facilitate quantitative analysis. To ensure the data's integrity and our findings' reliability, we carefully managed missing values and created derived variables as needed. This structured approach to data handling and analysis ensures that the insights derived from the survey are based on reliable and clearly understood data, setting the stage for practical recommendations to enhance customer satisfaction at "The Comany".
+
 ```{r}
 
 suppressMessages(library(janitor)) # For data cleaning
@@ -37,7 +30,7 @@ suppressMessages(library(lubridate)) # For date-time operations
 suppressMessages(library(ggplot2)) # For creating plots
 suppressMessages(library(hunspell)) # For spell checking
 
-yh <- read_csv("/Users/cristianthirteen/Downloads/Notre Dame/SP 24 Intro Machine Learning SP 24/Machine Learning Data Sets/Customer Satisfaction Survey YHI.csv", col_names = TRUE )
+yh <- read_csv("/Customer Satisfaction Survey The Company.csv", col_names = TRUE )
 glimpse(yh)
 
 # To ensure data integrity, the first row of the dataset, containing column names, was removed 
@@ -48,7 +41,7 @@ yh <- yh[-1, ]
 # Rename columns for clarity and consistency
 yh <- yh %>% rename(start_date = "Start Date", end_date = "End Date", 
     respondent_role = "Are you a Consumer, Agent, Broker or Enrollment Counselor?",
-    recommendation_likelihood = "How likely is it that you would recommend Your Health Idaho to a friend or colleague?",
+    recommendation_likelihood = "How likely is it that you would recommend "The Comany" to a friend or colleague?",
     suggestions = "How can we improve your experience with our company?"
   )
 
@@ -89,6 +82,7 @@ data <- yh
 
 # Summarize the Data
 ### Recommendation Likelihood
+
 ```{r}
 summary(data$recommendation_likelihood)
 
@@ -102,23 +96,9 @@ ggplot(data, aes(x = recommendation_likelihood)) +
   ) +
   theme_minimal()
 ```
-```{r, echo=FALSE}
-
-# Box plot
-# ggplot(data, aes(x = "", y = recommendation_likelihood)) +
-#   geom_boxplot(fill = "lightgreen", color = "black", notch = FALSE, outlier.shape = NA) +
-#   labs(
-#     title = "Box Plot of Recommendation Likelihood Scores",
-#     x = NULL,
-#     y = "Recommendation Likelihood Score"
-#   ) +
-#   theme_minimal() +
-#   coord_flip()
-
-```
 
 
-The analysis of the "recommendation_likelihood" variable reveals a range of responses among survey participants. The minimum score was 0, indicating the lowest possible recommendation likelihood, while the median score was 10, suggesting that half of the respondents rated their likelihood to recommend YHI as the highest possible. The mean score of approximately 9.088 reflects an overall positive sentiment among respondents. Despite this positive average, the first quartile value at 8 points was for some respondents with more moderate recommendation levels. However, the third quartile and the maximum score of 10 indicate that a substantial portion of respondents are highly likely to recommend YHI. This distribution suggests that while the majority are very positive, a segment of the population with reservations could be targeted for improvement.
+The analysis of the "recommendation_likelihood" variable reveals a range of responses among survey participants. The minimum score was 0, indicating the lowest possible recommendation likelihood, while the median score was 10, suggesting that half of the respondents rated their likelihood to recommend "The Comany" as the highest possible. The mean score of approximately 9.088 reflects an overall positive sentiment among respondents. Despite this positive average, the first quartile value at 8 points was for some respondents with more moderate recommendation levels. However, the third quartile and the maximum score of 10 indicate that a substantial portion of respondents are highly likely to recommend "The Comany". This distribution suggests that while the majority are very positive, a segment of the population with reservations could be targeted for improvement.
 
 ### Respondent Composition
 ```{r}
@@ -149,17 +129,6 @@ The survey included responses from 2768 "Consumers" and 336 "Agents, Brokers, or
 ### Implications for Service Improvement
 # Understanding the variation in recommendation likelihood between different groups, such as Consumers and ABC, can highlight specific areas where service improvements are necessary. For instance, if ABCs consistently provide lower recommendation scores than consumers, it may pinpoint service aspects that need enhancement to support these intermediary roles better.
 
-
-#May not do this after all
-# Exclude missing values from respondent_role
-# respondent <- data$respondent_role[!is.na(data$respondent_role)]
-
-#May not do this after all
-# recommendation <- data %>% 
-  # Remove any rows where the respondent didn't answer the question
-  # filter(!suggestions == "") %>% 
-  # select(recommendation_likelihood)
-
 ```
 
 
@@ -185,6 +154,7 @@ ggplot(data, aes(x = factor(week_number), fill = respondent_role)) +
 Throughout the survey period, we observed notable fluctuations in the number of respondents identifying as "ABC" or "Consumer." While most respondents are Consumers, the participation of the ABC group showed some consistency, fluctuating from week to week but maintaining a steady presence.
 
 ### Monthly Participation Comparison
+
 ```{r}
 # Create a bar plot showing distribution of respondents by month
 ggplot(data, aes(x = factor(month_number), fill = respondent_role)) +
@@ -192,19 +162,14 @@ ggplot(data, aes(x = factor(month_number), fill = respondent_role)) +
   labs(title = "Respondent Role Distribution by Week", x = "Week", y = "Count") +
   scale_fill_manual(values = c("lightseagreen", "lightgreen")) + 
   theme_minimal()
-
-
-
 ```
 
 Across the first four months of the survey, we saw a balanced engagement, with 75 respondents identifying as "ABC" and 134 as "Consumer" in the first Month. However, in Month 2, a significant surge in consumer participation is observed, due to a technical issue, with 936 respondents identifying as "Consumer" compared to 86 as "ABC." This trend continues into Month 3, where 1034 respondents identify as "Consumer" and 100 as "ABC." Conversely, Month 4 sees a decrease in respondents compared to previous months, suggesting a potential fluctuation in respondent engagement or external factors influencing participation rates.
 
 
-
-
 # Text Analysis
-
 ### Data Preparation
+
 ```{r}
 suppressMessages(library(mdsr)) # For spatial analysis
 suppressMessages(library(tidytext)) # For text mining and analysis
@@ -394,7 +359,7 @@ Extending our analysis to a monthly aggregation helps us identify broader trends
 
 
 # Words and Ratings Analysis
-This analysis aimed to uncover common themes or concerns expressed by customers, segmented by their likelihood of recommending YHI. By examining text responses from the survey, we identified the top four words mentioned for each recommendation likelihood giving us a total of 85 responses.
+This analysis aimed to uncover common themes or concerns expressed by customers, segmented by their likelihood of recommending "The Comany". By examining text responses from the survey, we identified the top four words mentioned for each recommendation likelihood giving us a total of 85 responses.
 ```{r}
 
 # Count the words by recommendation
@@ -999,7 +964,7 @@ In this analysis segment, we focused on the top 25 trigrams that received the hi
 
 
 # Conclusion of the Customer Satisfaction Survey Analysis
-Our extensive analysis of the Customer Satisfaction Survey conducted from January 1, 2024, to April 16, 2024, has provided profound insights into the experiences and perceptions of consumers and ABCs interacting with YHI. Utilizing advanced text mining and sentiment analysis techniques, we have uncovered significant themes, sentiments, and areas of concern that are pivotal in shaping customer satisfaction and service quality.
+Our extensive analysis of the Customer Satisfaction Survey conducted from January 1, 2024, to April 16, 2024, has provided profound insights into the experiences and perceptions of consumers and ABCs interacting with "The Comany". Utilizing advanced text mining and sentiment analysis techniques, we have uncovered significant themes, sentiments, and areas of concern that are pivotal in shaping customer satisfaction and service quality.
 
 ### Comprehensive Findings
 Positive Sentiments and Service Strengths: Our analysis revealed strong positive sentiments, with the highest satisfaction levels frequently mentioning words such as "helpful," "service," "experience," and "customer." We also saw this same sentiment reflected by phrases such as "extremely helpful," and "excellent service." Of course, this was expanded with our trigram analysis when we saw phrases such as "excellent customer service," "amazing super friendly," and "helpful wonderful service." These findings affirm the effectiveness of our customer service strategies and the positive impact of our team's interactions with customers.
@@ -1026,9 +991,9 @@ Longitudinal Analysis: Conducting a longitudinal study to track changes in custo
 Integration with Behavioral Data: Combining the findings from this text analysis with behavioral data, such as customer usage patterns and service interaction logs, could provide a more holistic view of customer behavior and satisfaction.
 
 ### Potential Hypotheses for Future Testing
-Impact of Response Time on Satisfaction: We hypothesize that implementing improvements in areas identified through customer feedback analysis will lead to increased satisfaction levels and higher recommendation likelihood ratings. Specifically, improvements in customer service, response times, or website usability may positively impact customer perceptions and their likelihood of recommending YHI to others. This hypothesis could be tested through targeted interventions and subsequent survey data analysis to assess satisfaction level changes over time.
+Impact of Response Time on Satisfaction: We hypothesize that implementing improvements in areas identified through customer feedback analysis will lead to increased satisfaction levels and higher recommendation likelihood ratings. Specifically, improvements in customer service, response times, or website usability may positively impact customer perceptions and their likelihood of recommending "The Comany" to others. This hypothesis could be tested through targeted interventions and subsequent survey data analysis to assess satisfaction level changes over time.
 
-Effectiveness of Personalized Communication: We hypothesize that enhancing communication strategies, such as providing clearer information about insurance processes, plan details, and enrollment procedures, and adding more personalized communication strategies will result in improved satisfaction levels among customers and potentially decrease the frequency of negative sentiments related to "confusing processes" and "poor communication. By addressing common concerns and providing transparent, easy-to-understand communication, YHI can enhance customer experiences and increase recommendation likelihood. This hypothesis could be tested through communication campaigns or informational sessions, followed by customer feedback analysis to measure satisfaction level changes.
+Effectiveness of Personalized Communication: We hypothesize that enhancing communication strategies, such as providing clearer information about insurance processes, plan details, and enrollment procedures, and adding more personalized communication strategies will result in improved satisfaction levels among customers and potentially decrease the frequency of negative sentiments related to "confusing processes" and "poor communication. By addressing common concerns and providing transparent, easy-to-understand communication, "The Comany" can enhance customer experiences and increase recommendation likelihood. This hypothesis could be tested through communication campaigns or informational sessions, followed by customer feedback analysis to measure satisfaction level changes.
 
-Correlation Between Service Training and Customer Feedback: Enhanced training programs for customer service representatives could potentially correlate with decreased negative feedback and increased positive sentiments. Providing additional support and resources to Agents, Brokers, and Enrollment Counselors (ABC) will positively impact customer satisfaction levels. By equipping ABCs with the necessary tools, training, and support to assist customers effectively, YHI can improve overall service quality and enhance the customer experience. This hypothesis could be tested through targeted interventions aimed at ABCs, such as training programs or resource materials
+Correlation Between Service Training and Customer Feedback: Enhanced training programs for customer service representatives could potentially correlate with decreased negative feedback and increased positive sentiments. Providing additional support and resources to Agents, Brokers, and Enrollment Counselors (ABC) will positively impact customer satisfaction levels. By equipping ABCs with the necessary tools, training, and support to assist customers effectively, "The Comany" can improve overall service quality and enhance the customer experience. This hypothesis could be tested through targeted interventions aimed at ABCs, such as training programs or resource materials
 
