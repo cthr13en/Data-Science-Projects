@@ -19,9 +19,9 @@ https://www.kaggle.com/datasets/mitchellmarecki/national-longitudinal-survey-of-
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 
 # Read the CSV file into a data frame
-project_data <- read.csv("/Users/cristianthirteen/Downloads/Notre Dame/SP 24 Intro Machine Learning SP 24/Machine Learning Data Sets/Project1Data.csv")
+project_data <- read.csv("/Project1Data.csv")
 
-project_headers <- read.csv("/Users/cristianthirteen/Downloads/Notre Dame/SP 24 Intro Machine Learning SP 24/Machine Learning Data Sets/Project1DataHeaders.csv", header = FALSE)
+project_headers <- read.csv("/Project1DataHeaders.csv", header = FALSE)
 ```
 
 ```{r load the data}
