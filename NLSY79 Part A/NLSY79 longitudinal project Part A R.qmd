@@ -1,0 +1,330 @@
+---
+title: "NLSY79 longitudinal project"
+subtitle: "Data Clense"
+author: "Cristian T"
+date: last-modified
+format: 
+   html:
+     df-print: paged
+     embed-resources: true
+editor: 
+  markdown: 
+    wrap: 72
+---
+The NLSY79 surveys 12,686 individuals starting in 1979 yearly until 1994 and every two years until 2018. The NLSY97 surveys 8,984 individuals beginning in 1997 annually until 2011 and every two years until 2017. Biennial data from 1980 to 2004 for the NLSY79 and biennial data from 1997 to 2017 for the NLSY97 are used. The NLSY79 and NLSY97 are designed with oversamples of Hispanics and African Americans. I added sampling weights to the data to create the correct national representation of the United States. Data cleaning resulted in a final sample containing observations on 19,755 agents.
+
+https://www.kaggle.com/datasets/mitchellmarecki/national-longitudinal-survey-of-youth
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+
+# Read the CSV file into a data frame
+project_data <- read.csv("/Users/cristianthirteen/Downloads/Notre Dame/SP 24 Intro Machine Learning SP 24/Machine Learning Data Sets/Project1Data.csv")
+
+project_headers <- read.csv("/Users/cristianthirteen/Downloads/Notre Dame/SP 24 Intro Machine Learning SP 24/Machine Learning Data Sets/Project1DataHeaders.csv", header = FALSE)
+```
+
+```{r load the data}
+
+
+# Check the structure of the data frame
+str(project_data)
+str(project_headers)
+
+suppressMessages(library(tidyverse))
+suppressMessages(library(tibble))
+suppressMessages(library(dplyr))
+
+
+
+
+
+```
+
+## Tidy the Data
+
+The raw survey responses provided in `Project1Data.csv` are not in a
+tidy format. Unfortunately, height observations for each survey year are
+stored in columns instead of rows.
+
+Tidy the data found in `Project1Data.csv`. Use the provided meta-data in
+`Project1DataHeaders.csv` to map columns to their respective years and
+values.
+
+Store the result of your work in a new tibble, `height_data_tidy`. It
+should have the following five columns:
+
+CASEID - Contains the unique identifier for an individual survey
+participant sex - Contains the sex for the survey respondents. year -
+Contains the survey year as an integer. height_feet - Contains the
+respondents' height in feet as an integer. height_inches - Contains the
+respondents' height in inches as an integer.
+
+```{r tidy the data}
+
+#It will be simpler to tidy the data if we first split it into two data frames: `feet` and `inches`.
+feet <- project_data %>% select(R0000100, R0536300, T0897400, T2053900, T3024800 , T3955100, T4892800)
+inches <- project_data %>% select(R0000100, T0897500, T2054000, T3024900, T3955200, T4892900) 
+
+
+# Create a new data frame for `tidy_feet` data
+tidy_feet <- pivot_longer(feet, cols = "T0897400":"T4892800") %>% inner_join(project_headers, by = join_by(name == V1)) %>% #recommend innerjoin
+  select(-V2, -V3, -name) %>% 
+  rename("CASEID" = R0000100, "height_ft" = value, "year" = V4, "sex" = R0536300 )
+
+# Create a new data frame for `tidy_inches` data
+tidy_inches <- pivot_longer(inches, cols = "T0897500":"T4892900") %>% inner_join(project_headers, by = join_by(name == V1)) %>% 
+  select(-V2, -V3, -name) %>% 
+  rename("CASEID" = R0000100, "height_in" = value, "year" = V4 )
+
+# Store the result of your work in a new tibble
+height_data_tidy <- inner_join(tidy_feet, tidy_inches, by = c("CASEID", "year"))
+
+# Sort data to reflect assignment
+height_data_tidy <- height_data_tidy %>% 
+  select(CASEID, sex, year, height_ft, height_in)
+
+height_data_tidy
+```
+
+## Clean the Data
+
+Inspect the `height_feet` and `height_inches` data in your
+`height_data_tidy` tibble. 
+
+### Missing Data Representation
+Upon examining the height_feet and height_inches columns in the height_data_tidy tibble, it was found that missing data is represented using negative values. Specifically, -1 denotes refusal, -2 indicates "Don't know," -3 signifies a measurement error, -4 is a valid skip, and -5 represents a non-interview. Notably, all values are present in the dataset, but these negative values highlight the specific conditions for missing data.
+
+```{r}
+# Replace the missing value conventions with NA
+height_data_tidy <- height_data_tidy %>%
+  mutate_all(~ ifelse(. %in% c(-5, -4, -3, -2, -1), NA, .))
+
+```
+
+
+### Expected Value Ranges for Feet and Inches
+It is reasonable to assume that the majority of heights fall within a range of a high 3 feet minimum to approximately 6.5 feet maximum. This provides a general expectation for the data distribution.
+
+```{r actual vales based on date}
+summary(height_data_tidy$height_ft)
+summary(height_data_tidy$height_in)
+
+```
+
+### Comparison of Expected and Actual Ranges
+A summary of the height_data_tidy$height_ft data reveals that the recorded heights range from 2 to 8 feet, with the majority clustered around the 5-foot mark. The first and third quartiles also align at 5 feet.
+
+In contrast, the height_data_tidy$height_in data shows a range from 0 to 75 inches, with a median value of 5 inches. This suggests that some heights initially recorded in feet might have been erroneously reported in inches, leading to unusually high maximum values.
+
+Identification and Handling of Outliers
+Upon closer inspection, there are outliers in the data. For instance, heights as low as 2 feet and as high as 8 feet are recorded in the feet column. Specific cases, such as CaseID 486, show a height of 2 feet in 2006, but 5 feet in subsequent years, indicating potential data entry errors.
+
+In the inches column, there are values exceeding 12 inches. These cases warrant further examination to verify and adjust if necessary. Despite these anomalies, there do not appear to be significant outliers beyond these specific issues.
+
+
+## Clean the data based on observations.
+
+Clean up any incorrect values in `height_feet` and clean up any incorrect
+values in `height_inches`. Once completed combine these to compute a single height
+variable; Perform any remaining clean-up of outliers, as necessary.
+
+```{r clean the data}
+# create a function to fill in missing values within the same CASEID for `height_ft`
+fill_missing_ft <- function(data) {
+  data %>%
+    mutate(
+      height_ft = ifelse(
+        is.na(height_ft) & any(!is.na(height_ft) & year %in% 2006:2014),
+        first(height_ft[!is.na(height_ft) & year %in% 2006:2014]),
+        height_ft
+      )
+    )
+}
+
+# Apply the filling function for `height_ft`
+height_data_tidy <- height_data_tidy %>%
+  arrange(CASEID, year) %>%  # Ensure the data is sorted by CASEID and year
+  group_by(CASEID) %>%
+  fill_missing_ft(.) %>%
+  ungroup()
+
+
+# create a function to fill in missing values within the same CASEID for `height_in`
+fill_missing_in <- function(data) {
+  data %>%
+    mutate(
+      height_in = ifelse(
+        is.na(height_in) & any(!is.na(height_in) & year %in% 2006:2014),
+        first(height_in[!is.na(height_in) & year %in% 2006:2014]),
+        height_in
+      )
+    )
+}
+
+# Apply the filling function for `height_in`
+height_data_tidy <- height_data_tidy %>%
+  arrange(CASEID, year) %>%  # Ensure the data is sorted by CASEID and year
+  group_by(CASEID) %>%
+  fill_missing_in(.) %>%
+  ungroup()
+
+
+#Spot check
+#height_data_tidy %>%
+#  filter(CASEID == 486)
+
+
+
+# manually fix those that make sense for feet
+height_data_tidy <- height_data_tidy %>%
+  mutate(
+    height_ft = case_when(
+      CASEID %in% c(486, 1273, 3337, 7859) & year == 2006 ~ 5,
+      CASEID %in% c(274) & year == 2006 ~ 6,
+      CASEID %in% c(6442, 7301, 1588) & year == 2008 ~ 5,
+      CASEID %in% c(4243) & year == 2008 ~ 6,
+      CASEID %in% c(87, 8971, 5754) & year == 2010 ~ 5,
+      CASEID %in% c(4243) & year == 2010 ~ 6,
+      CASEID %in% c(675) & year == 2012 ~ 6,
+      CASEID %in% c(1273, 2736, 3667, 7547, 2006) & year == 2012 ~ 5,
+      CASEID %in% c(1273, 3337, 5342, 7547, 8971, 11535, 3724, 11082) & year == 2014 ~ 5,
+   TRUE ~ height_ft  # Keep other values unchanged
+    )
+  )
+
+
+# manually fix those that make sense for inches
+height_data_tidy <- height_data_tidy %>%
+  mutate(
+    height_in = case_when(
+      CASEID %in% c(6476) & year == 2012 ~ 1,
+      CASEID %in% c(4514, 2353) & year == 2012 ~ 2,
+      CASEID %in% c(1349) & year == 2012 ~ 3,
+      CASEID %in% c(6032) & year == 2012 ~ 11, 
+      CASEID %in% c(1268, 2353, 2474, 6712) & year == 2008 ~ 1, 
+      CASEID %in% c(4555, 8813, 11044) & year == 2008 ~ 10,  
+      CASEID %in% c(5168, 6070, 9952) & year == 2008 ~ 0,
+      CASEID %in% c(8999) & year == 2006 ~ 0,  
+      CASEID %in% c(4244, 7859) & year == 2006 ~ 11,  
+      CASEID %in% c(5640, 10339) & year == 2010 ~ 5,  
+      CASEID %in% c(10434) & year == 2010 ~ 0,  
+      CASEID %in% c(7) & year == 2010 ~ 9, 
+      CASEID %in% c(8971) & year == 2010 ~ 11, 
+      CASEID %in% c(10507, 3786) & year == 2014 ~ 4,  
+      CASEID %in% c(7157, 7547) & year == 2014 ~ 11,  
+      TRUE ~ height_in  # Keep other values unchanged
+    )
+  )
+```
+
+I modified the measurements to match previous years if they were consistent. I assumed
+that the median height for men is 70 inches with a standard deviation of
+3 inches. Women have a median height of 64.5 with a standard deviation
+of 2.5. So if there was a discrepancy over 3 inches and the previous
+recordings were consistent. Anything within that range I left as they
+were, and anything over I corrected to match previous readings. In my
+"clean the data" chunk, the CaseIDs that I manipulated are listed along
+with my functions to fill in missing values if they were within the same
+CASEID for `height_ft` and `height-in.` After I completed this, I
+realized that this method may not have been ideal in a real-world
+situation due to the time invested in cleaning this data.
+
+```{r}
+# Calculate total height in inches and create a new column
+height_data_tidy_cleaned <- height_data_tidy %>%
+  mutate(
+    height = height_ft * 12 + height_in
+  ) %>% 
+  select(-height_ft, -height_in)  # Remove height_ft, height_in
+
+height_data_tidy_cleaned
+
+```
+
+## Visualize the data
+
+Visualize the distributions of `height` in your `height_data_tidy_clean`
+tibble to validate your work. Compare the height distributions for males
+and females.
+
+```{r}
+ggplot(height_data_tidy_cleaned, aes(x = height, fill = sex)) +
+  geom_density(alpha = 0.7) +
+  labs(
+    title = "Density Plot of Height by Sex",
+    x = "Height (inches)",
+    y = "Density"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+
+
+ggplot(height_data_tidy_cleaned, aes(x = sex, y = height, fill = sex)) +
+  geom_boxplot() +
+  labs(
+    title = "Box Plot of Height by Sex",
+    x = "Sex",
+    y = "Height (inches)"
+  ) +
+  theme_minimal()
+
+```
+
+Looking at this boxplot made me wonder if the data is represented
+accurately, and I am somewhat surprised. The summary statistics show
+that women's median height is 64 inches, which is within the national
+standard. Therefore, my range of expected values could have been more
+accurate. I assumed the 3 feet was in range, but based on these summary
+statistics, anything less than 56 and greater than 72 could be
+considered outliers based on the IQR method. For Men, any values that
+are less than 62 or greater than 78 inches would be considered potential
+outliers as well.
+
+```{r}
+# Filter out men
+height_data_women <- height_data_tidy_cleaned %>%
+  filter(sex == "female")
+
+ggplot(height_data_women, aes(x = sex, y = height)) +
+  geom_boxplot() +
+  labs(
+    title = "Box Plot of Women",
+    x = "Female",
+    y = "Height (inches)"
+  ) +
+  theme_minimal()
+
+summary(height_data_women$height)
+```
+
+```{r}
+# Filter out women
+height_data_men <- height_data_tidy_cleaned %>%
+  filter(sex == "male")
+
+ggplot(height_data_men, aes(x = sex, y = height)) +
+  geom_boxplot() +
+  labs(
+    title = "Box Plot of Men",
+    x = "Men",
+    y = "Height (inches)"
+  ) +
+  theme_minimal()
+
+summary(height_data_men$height)
+```
+
+```{r}
+
+ggplot(height_data_tidy_cleaned, aes(x = height, color = sex)) +
+  stat_ecdf() +
+  labs(
+    title = "ECDF Plot of Height by Sex",
+    x = "Height (inches)",
+    y = "Cumulative Probability"
+  ) +
+  theme_minimal()
+```
