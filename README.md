@@ -31,4 +31,4 @@ This databricks project aims to classify the quality of red wine based on its ph
 - `seaborn` and `matplotlib`
 
 
-[Machine Learning with Spark Analysis](https://github.com/cthr13en/Data-Science-Projects/tree/main/Machine%20Learning%20with%20Spark%20using%20Delta%20Lake%20and%20MLFlow)
+# [Machine Learning with Spark Analysis](https://github.com/cthr13en/Data-Science-Projects/tree/main/Machine%20Learning%20with%20Spark%20using%20Delta%20Lake%20and%20MLFlow)
