@@ -1,0 +1,602 @@
+---
+title: "NLSY79 longitudinal project"
+author: "Cristian T"
+date: last-modified
+format: 
+   html:
+     df-print: paged
+     embed-resources: true
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+```{r load the data, warning=F, message=F}
+suppressMessages(library(tidyverse))
+suppressMessages(library(tibble))
+suppressMessages(library(dplyr))
+suppressMessages(library(ggplot2))
+suppressMessages(library(scales))
+suppressMessages(library(RColorBrewer))
+
+# Read the RData files into a data frame
+load("physical_data_nlsy79.RData")
+load("education_data_nlsy79.RData")
+load("income_data_nlsy79.RData")
+```
+
+## Join Data
+
+Our analysis examines income, education, and physical characteristics in
+2014, so we joined the relevant datasets and restricted the year.
+
+```{r}
+data <- inner_join(income_data_nlsy79, education_data_nlsy79, 
+                  by=c("CASEID", "year"))
+data <- inner_join(data, physical_data_nlsy79, 
+                  by=c("CASEID", "year")) %>%
+  select(CASEID, year, income, education, hair, sex)
+data <- data %>% filter(year==2014)
+glimpse(data)
+```
+
+After joining and limiting the year to 2014, the filtered data has 12686
+rows and six columns.
+
+## Exploration of the Income Variable
+
+We will begin by running some basic summary statistics to provide us
+with a basic understanding of the distribution and characteristics of
+the income data in the dataset. We first run a check for missing values
+to assess data completeness. We further explore the measures of central
+tendency (mean, median), dispersion (standard deviation), and range
+(minimum and maximum values).
+
+```{r exploring income}
+# Check for missing values in the income column
+missing_incomes <- sum(is.na(data$income))
+# Mean
+mean_income <- mean(data$income, na.rm = TRUE)
+# Median
+median_income <- median(data$income, na.rm = TRUE)
+# Standard deviation
+sd_income <- sd(data$income, na.rm = TRUE)
+# Minimum
+min_income <-min(data$income, na.rm = TRUE)
+# Maximum
+max_income <- max_income <- max(data$income, na.rm = TRUE)
+# Printing the results
+cat("\nMissing Incomes:", missing_incomes, "\n")
+cat("\nMean Income:", mean_income, "\n")
+cat("Median Income:", median_income, "\n")
+cat("Standard Deviation of Income:", sd_income, "\n")
+cat("Minimum Income:", min_income, "\n")
+cat("Maximum Income:", max_income, "\n")
+#overview of Summary statistics
+summary(income_data_nlsy79$income)
+```
+
+Visually inspecting income we see the following plot.
+
+```{r warning=F, message=F}
+p <- ggplot(data, aes(x = income)) +
+  geom_histogram(bins = 30, fill = "steelblue", color = "black") +  # Specify fill and border color
+  labs(x = "Income", y = "Frequency") +
+  scale_x_continuous(labels = scales::comma) +
+  theme_minimal()
+
+ggsave("income.png", plot = p)
+p
+```
+
+Based on the above graph, over 2000 responses show zero income in 2014,
+but we will keep our zero values. We want to explore the level of
+education and how it correlates with income.
+
+Remove any rows with missing values in income.
+
+```{r}
+data <- data %>%
+  filter(!is.na(income))
+```
+
+## Study of Education
+
+```{r}
+p <- ggplot(data = data, aes(x = education)) + geom_bar(fill = "steelblue", color = "black")
+ggsave("education.png", plot = p)
+p
+```
+
+This plot reveals the spurious value 95, meaning some ungraded
+education. We'll exclude these from the analysis. Evidently, there are
+few of these values in the education data.
+
+```{r}
+p <- ggplot(
+  data = filter(data, education < 95),
+  aes(x = education)
+) + geom_bar(fill = "steelblue", color = "black")
+ggsave("education.png", plot = p)
+p
+```
+
+```{r}
+data <- data %>% filter(education<95)
+```
+
+```{r}
+sum(is.na(data$education))
+```
+
+There is no missing value in education now.
+
+## Study of Gender
+
+Let's plot sex to examine the distribution.
+
+```{r}
+p <- ggplot(data = data, aes(x = sex)) + geom_bar(fill = "steelblue", color = "black")
+ggsave("sex.png", plot = p)
+p
+```
+
+```{r}
+sum(is.na(data$sex))
+```
+
+There is no missing value in sex now.
+
+## Study of Hair
+
+```{r}
+p <- ggplot(data = data,  aes(x = hair) ) + geom_bar(fill = "steelblue", color = "black")
+ggsave("hair.png", plot = p)
+p
+```
+
+This graph shows that over 2,500 respondents have brown hair, and over
+2,000 respondents have black hair.
+
+```{r}
+sum(is.na(data$hair))
+```
+
+There are 191 missing values in hair.
+
+## Explore the Effects of Education on Income
+
+In this section, we are looking at the connection between education
+levels and income. We are trying to understand income distribution
+dynamics concerning different educational milestones and the
+individuals' mean income.
+
+```{r compare income to education }
+#plot showing distribution education and income
+p <- ggplot(data, aes(x = as.factor(education), y = income)) +
+  geom_boxplot(fill = "steelblue", color = "black") +
+  labs(x = "Education (Years)", y = "Income") +
+  scale_y_continuous(labels = scales::comma)
+ggsave("income_education.png", plot = p)
+p
+```
+
+In the above graph, we are exploring the relationship between education
+levels and income. The chart presents a box plot showing income
+distribution across various education levels, using blue boxes to
+highlight the interquartile range of incomes within each group. The plot
+suggests that there is a positive association between income and years
+of education.
+
+To further clean things up, we will exclude any education under the 8th
+grade. We are performing this cleanse to comply with inaccuracies and
+following the law that most states have some compulsory education laws
+and adjusting for potential age allowances that some states will allow
+one to drop out of school.
+
+```{r}
+p <- ggplot(
+  filter(data, education >= 8  & income <= 200000),
+  aes(x = as.factor(education), y = income)) +
+  geom_boxplot(fill = "steelblue", color = "black") +
+  labs(x = "Education (Years)", y = "Income") +
+  scale_y_continuous(labels = scales::comma)
+ggsave("income_education_yrs.png", plot = p)
+p
+```
+
+The positive linear relationship becomes more evident after removing the
+respondents with less than eight years of education, highlighting the
+influence of education level on income.
+
+```{r bar plot}
+income_by_education_mean <- data %>%
+  filter(income <= 200000, education >= 8) %>% 
+  group_by(education) %>%
+  summarize(mean_income = mean(income, na.rm = TRUE))
+
+p <- ggplot(income_by_education_mean, 
+       aes(x = as.factor(education), y = mean_income)) +
+  geom_bar(stat = "identity", fill = "steelblue", color = "black") +
+  labs(x = "Education (Years)", y = "Mean Income", title = "Mean Income by Education Level")
+ggsave("mean_income_by_years.png", plot = p)
+p
+```
+
+```{r}
+income_by_education_median <- data %>%
+  filter(income <= 200000, education >= 8) %>% 
+  group_by(education) %>%
+  summarize(median_income = median(income, na.rm = TRUE))
+
+p <- ggplot(income_by_education_median, aes(x = as.factor(education), y = median_income)) +
+  geom_bar(stat = "identity", fill = "steelblue", color = "black") +
+  labs(x = "Education (Years)", y = "Median Income", title = "Median Income by Education Level")
+ggsave("mean_income_by_level.png", plot = p)
+p
+```
+
+Continuing our examination, we look at the relationship between
+education levels and income by summarizing individuals' mean and median
+income better to understand the income distribution within each
+education group. The bar chart illustrates how mean and median income
+differs across these academic years. Looking at both of the graphs, we
+see how much those exceptionally high incomes have affected the overall
+mean income, while the median incomes appears to be reflective of the
+majority of individuals.
+
+```{r simple plot to compare}
+# Filter the data for the specific education levels
+education_levels <- c(12, 14, 16, 18, 20)
+income_by_education <- data %>%
+  filter(education %in% education_levels)
+
+# Create a bar plot for mean
+p <- ggplot(income_by_education, aes(x = factor(education), y = income)) +
+  geom_bar(stat = "summary", fun = "mean", fill = "steelblue", color = "black") +
+  labs(x = "Education Level", y = "Mean Income") +
+  scale_x_discrete(labels = c("12" = "High School", "14" = "Associates", "16" = "Bachelors", "18" = "Masters", "20" = "Doctorate"))
+ggsave("mean_income_by_education.png", plot = p)
+p
+
+# Create a bar plot for median
+q <- ggplot(income_by_education, aes(x = factor(education), y = income)) +
+  geom_bar(stat = "summary", fun = "median", fill = "lightblue", color = "black") +
+  labs(x = "Education Level", y = "Median Income") +
+  scale_x_discrete(labels = c("12" = "High School", "14" = "Associates", "16" = "Bachelors", "18" = "Masters", "20" = "Doctorate"))
+ggsave("mean_income_by_education.png", plot = q)
+q
+```
+
+This second series of graphs focuses on specific education levels (12,
+14, 16, 18, 20) corresponding to milestones such as high school,
+associate's degrees, bachelor's degrees, MBAs, and doctorates. We
+calculate and visualize the mean and median income for individuals with
+these distinct education levels.
+
+```{r add additional insights}
+
+# Calculate summary statistics for income by education level
+summary_stats <- income_by_education %>%
+  group_by(education) %>%
+  summarise(mean_income = mean(income, na.rm = TRUE),
+            sd_income = sd(income, na.rm = TRUE),
+            n = n())
+
+# Create a bar plot with error bars
+p <- ggplot(summary_stats, aes(x = factor(education), y = mean_income)) +
+  geom_bar(stat = "identity", fill = "steelblue", color = "black", width = 0.5) +
+  geom_errorbar(aes(ymin = mean_income - sd_income / sqrt(n), ymax = mean_income + sd_income / sqrt(n)),
+                width = 0.2, color = "red") +
+  labs(x = "Education Level", y = "Mean Income", title = "Mean Income by Education Level") +
+  scale_x_discrete(labels = c("12" = "High School", "14" = "Associates", "16" = "Bachelors", "18" = "Masters", "20" = "Doctorate")) +
+  theme_minimal()
+ggsave("mean_income_by_education_level.png", plot = p)
+p
+```
+
+We are looking at the mean income for each education level achieved in
+2014. This graph shows the average income for individuals with each
+corresponding education level. We added the red error bars to provide
+insights into the reliability of these income estimates, showing us the
+variability in income within each education level and representing the
+uncertainty or variability in the average income estimates for each
+education level. The height of these bars reflects the degree of
+variability within each education level's income, with taller bars
+signifying greater variability and shorter bars indicating less
+uncertainty in the income estimate
+
+## Comparing Income to Physical Attributes
+
+We will begin exploring the relationship between income and physical
+attributes, focusing on hair color.
+
+```{r}
+# Group hair colors into broader categories
+data <- data %>%
+    filter(!is.na(hair), !is.na(income)) %>%
+  mutate(broad_hair_color = case_when(
+    hair %in% c("blond", "light blond") ~ "blond",
+    hair %in% c("brown", "light brown") ~ "brown",
+    hair %in% c("grey", "other_low_count_category1", "other_low_count_category2") ~ "other",
+    TRUE ~ as.character(hair)  # Keep other categories as is
+  ))
+
+# we want to see a new count of our distribution of hair color, count the number of observations for hair color
+hair_color_counts_broad <- data %>%
+  group_by(broad_hair_color) %>%
+  summarize(observations = n())
+
+#display counts
+hair_color_counts_broad
+
+#our observations are now updated but now we see black and brown consisting of the majority and other is 3 not sure if this is better but going with it
+```
+
+```{r}
+# Calculate the mean income for each broad hair color category
+mean_income_by_color <- data %>%
+  group_by(broad_hair_color) %>%
+  summarize(mean_income = mean(income, na.rm = TRUE))  %>%
+  mutate(broad_hair_color = reorder(broad_hair_color, -mean_income))
+
+# Define custom colors for each hair color category
+hair_color_colors <- c(
+  "other" = "burlywood", 
+  "blond" = "darkgoldenrod",
+  "brown" = "brown",
+  "black" = "black",
+  "red" = "red"
+)
+
+# Create a bar plot for mean income by broad hair color
+p <- ggplot(mean_income_by_color, 
+       aes(x = broad_hair_color, y = mean_income, fill = broad_hair_color)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Mean Income by Broad Hair Color Categories", x = "Broad Hair Color Category", y = "Mean Income") +
+  scale_fill_manual(values = hair_color_colors) +  # Use custom colors
+  theme_minimal() + labs(fill = "Hair Color")  # Rename the legend
+
+ggsave("mean_income_by_color.png", plot = p)
+p
+```
+
+We examine the distribution of hair colors in the dataset and find that
+the hair colors appear imbalanced. Black and brown have the most
+observations, but we are limited in variety for the colors red, grey,
+blond, and light blond. These results will ultimately create an
+imbalance and affect the statistical significance and reliability when
+analyzing the relationship between hair color and income.
+
+## Mean Income by Broad Hair Color Categories
+
+```{r make some adjustments}
+
+#the other category looks misleading so we should filter this out
+# Calculate the mean income for each broad hair color category, excluding "other"
+mean_income_by_color_exclude_other <- data %>%
+  filter(broad_hair_color != "other") %>%
+  group_by(broad_hair_color) %>%
+  summarize(mean_income = mean(income, na.rm = TRUE))
+
+# Reorder the broad hair color categories by mean income in descending order
+mean_income_by_color_exclude_other <- mean_income_by_color_exclude_other %>%
+  mutate(broad_hair_color = reorder(broad_hair_color, -mean_income))
+
+# Create a bar plot for mean income by broad hair color with custom colors
+p <- ggplot(mean_income_by_color_exclude_other, aes(x = broad_hair_color, y = mean_income, fill = broad_hair_color)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Mean Income by Hair Color Categories (Excluding 'Other')", x = "Hair Color Category", y = "Mean Income") +
+  scale_fill_manual(values = hair_color_colors) +  # Use custom colors
+ theme_minimal() + labs(fill = "Hair Color")  # Rename the legend
+
+ggsave("mean_income_by_color_exclude_other.png", plot = p)
+p
+
+
+# Find the median income for the black hair color
+reference_median <- mean_income_by_color_exclude_other %>%
+  filter(broad_hair_color == "black") %>%
+  pull(mean_income)
+
+# Calculate the percentage difference compared to black category
+mean_income_by_color_exclude_other <- mean_income_by_color_exclude_other %>%
+  mutate(percentage_difference = ((mean_income - reference_median) / reference_median) * 100) %>%
+  
+# Sort the data in ascending order of percentage difference
+  arrange(percentage_difference)
+
+mean_income_by_color_exclude_other
+
+```
+
+To compensate for this, we grouped our hair colors into broader
+categories, such as combining different shades of blond and brown while
+preserving other types as they were. We acknowledge the small count in
+the "other" category. We will make further adjustments, setting the
+stage for further analysis of income across these newly defined hair
+color groups.
+
+To begin analyzing this information, we calculate the average income for
+the different hair color categories we are looking at. We create a bar
+plot to visualize the mean income. As we mentioned earlier, the "other"
+category was included in our dataset, and when it is graphed, it appears
+misleading. We created a new plot and excluded the "other"
+classification. We recalculated the mean income for the remaining
+colors. Based on the information in our dataset, we saw that people with
+blond hair, on average, have a higher mean income than those with black,
+brown, or red hair.
+
+## Combined Effects of Education and Hair on Income
+
+```{r}
+# Create a faceted scatterplot of income vs. education
+p <- ggplot(data %>% filter(broad_hair_color != "other",  !is.na(income)), 
+       aes(x = education, y = income)) +
+  geom_point(aes(color = broad_hair_color)) +
+  facet_wrap(~broad_hair_color) +
+  labs(x = "Education Level", y = "Income", title = "Income vs. Education by Hair Color (Excluding 'Other' and Education < 95)") +
+  scale_color_manual(values = hair_color_colors) +
+  theme_bw() +
+  guides(color = "none") +  # Remove the color legend
+  scale_y_continuous(labels = scales::comma)
+
+ggsave("Income_vs_Education_by_HairColor.png", plot = p)
+p
+```
+
+In this analysis, we created a faceted scatterplot to explore the
+relationship between income and education. We see how income and
+education levels vary across different hair color groups. We exclude the
+"other" hair color category to enhance clarity. While the scatter plot
+reveals that individuals with blond hair, on average, tend to have lower
+education completion than those with black or brown hair, they
+consistently have a higher mean income. Additionally, it's worth noting
+that higher education levels generally correlate with higher incomes
+across all hair color categories. Further exploration of this data could
+unveil more intriguing patterns and insights.
+
+## Combined Effects of Gender and Hair on Income
+
+```{r}
+
+# Filter the data to exclude "other"
+filtered_data <- data %>%
+  filter(broad_hair_color != "other")
+
+# Group the filtered data by broad_hair_color and gender, and calculate mean income
+income_by_color_gender <- filtered_data %>%
+  group_by(broad_hair_color, sex) %>%
+  summarize(mean_income = mean(income, na.rm = TRUE))
+
+# Define custom colors for gender
+sex_color <- c(
+  "male" = "blue", 
+  "female" = "pink"
+)
+
+# Create a faceted bar plot for mean income by hair color and gender
+p <- ggplot(income_by_color_gender, aes(x = broad_hair_color, y = mean_income, fill = sex)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Hair Color", y = "Mean Income", title = "Mean Income by Hair Color and Gender (Excluding 'Other')") +
+  scale_fill_manual(values = sex_color) +  # Custom colors
+  theme_minimal() +
+  facet_wrap(~sex, scales = "free_y")  # Facet by gender with independent y-axes
+ggsave("income_by_color_gender.png", plot = p)
+p
+
+# Group the data by broad_hair_color, sex, and calculate mean income
+mean_income_by_color_gender <- data %>%
+  group_by(broad_hair_color, sex) %>%
+  summarize(mean_income = mean(income, na.rm = TRUE))
+
+
+# Check the summary
+mean_income_by_color_gender
+
+
+# Calculate the mean income for each combination of broad_hair_color and sex
+mean_income_by_color_gender <- data %>%
+  group_by(broad_hair_color, sex) %>%
+  summarize(mean_income = mean(income, na.rm = TRUE))
+
+# Calculate the percentage difference
+percentage_difference <- mean_income_by_color_gender %>%
+  pivot_wider(names_from = sex, values_from = mean_income) %>%
+  mutate(percentage_difference = ((male - female) / female) * 100)
+
+# View the resulting data frame
+percentage_difference
+
+
+```
+
+We created a faceted plot by filtering the hair color data to exclude
+the "other" category in the dataset. We then grouped the variables
+"broad_hair_color" and "sex" to calculate the mean income for each
+resulting group. Upon reviewing the graph, it is evident that there are
+gender-based income disparities. In most hair color categories, males
+tend to have higher mean incomes than females. To provide a more
+detailed understanding, we present the calculations in terms of
+percentage variations in the subsequent tables, illustrating these
+differences.
+
+## Grouped Analysis of Summary Statistics
+
+### Mean and Median Income by Gender
+
+```{r}
+data %>%
+  group_by(sex) %>% summarise(Mean=mean(income, na.rm=T),
+                              Median=median(income, na.rm=T))
+```
+
+Males seem to have higher average and median income compared with
+females.
+
+### Mean and Median Income by Hair
+
+```{r}
+data %>%
+  group_by(hair) %>% summarise(Mean=mean(income, na.rm=T),
+                              Median=median(income, na.rm=T))
+```
+
+Respondents with light blond color seem to have the highest average and
+median income. Respondents with black color seem to have the lowest
+average and median income.
+
+### Mean and Median Income by Hair and Gender
+
+```{r}
+data %>%
+  group_by(sex, hair) %>% summarise(Mean=mean(income, na.rm=T),
+                              Median=median(income, na.rm=T))
+```
+
+### Proportion With Income More Than 200000 by Race
+
+```{r}
+data %>%
+  group_by(sex) %>% summarise(Proportion=mean(income>200000, na.rm=T))
+```
+
+The proportion of income over \$200,000 is higher for males than
+females.
+
+### Proportion With Income More Than 200000 by Hair Color
+
+```{r}
+data %>%
+  group_by(hair) %>% summarise(Proportion=mean(income>200000, na.rm=T))
+```
+
+The respondent with light blond color has the highest proportion of
+income, more than \$200,000.
+
+## Hypotheses for Further Analysis
+
+### Hypothesis 1: Education and Income
+
+We hypothesize that there is a positive relationship between education
+level and income. In our analysis, we saw that individuals with higher
+levels of education tended to have higher incomes. We expect that as
+years of education increase, so does the average income.
+
+### Hypothesis 2: Hair Color and Income
+
+Based on our analysis of hair color and income, we hypothesize that
+certain hair colors may be associated with higher incomes when compared
+to others. Specifically, our data suggests that individuals with blond
+hair tend to have a higher mean and median income than those with black,
+brown, or red hair. This hypothesis may require further investigation to
+test its statistical significance.
+
+### Hypothesis 3: Gender-Based Income
+
+We propose that gender-based income disparities exist in our dataset.
+Specifically, we hypothesize that males, on average, have higher incomes
+than females. Our hypothesis is drawn from our exploratory data
+analysis, which reveals that the mean and median income for males is
+consistently higher than that of females across various education
+levels.
