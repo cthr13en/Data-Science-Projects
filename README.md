@@ -19,3 +19,13 @@ This project involves predicting property values using machine learning, specifi
 - `scikit-learn`
 - `matplotlib`
 - `seaborn`
+
+# Machine Learning with Spark
+This databricks project aims to classify the quality of red wine based on its physicochemical properties using machine learning models. The dataset used is the Red Wine Quality dataset from the Vinho Verde region in northwestern Portugal. The goal is to predict whether a wine is of low, medium, or high quality by analyzing features such as acidity, sugar content, and alcohol level. [View Machine Learning with Spark Analysis](https://github.com/cthr13en/Data-Science-Projects/tree/main/Machine%20Learning%20with%20Spark%20using%20Delta%20Lake%20and%20MLFlow)
+
+## Packages Used
+- `PySpark`
+- `MLflow`
+- `scikit-learn`
+- `mlflow`
+- `seaborn` and `matplotlib`
