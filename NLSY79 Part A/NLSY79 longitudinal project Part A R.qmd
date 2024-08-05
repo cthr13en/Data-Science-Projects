@@ -11,9 +11,9 @@ editor:
   markdown: 
     wrap: 72
 ---
-The NLSY79 surveys 12,686 individuals starting in 1979 yearly until 1994 and every two years until 2018. The NLSY97 surveys 8,984 individuals beginning in 1997 annually until 2011 and every two years until 2017. Biennial data from 1980 to 2004 for the NLSY79 and biennial data from 1997 to 2017 for the NLSY97 are used. The NLSY79 and NLSY97 are designed with oversamples of Hispanics and African Americans. I added sampling weights to the data to create the correct national representation of the United States. Data cleaning resulted in a final sample containing observations on 19,755 agents.
+This project utilizes data from the National Longitudinal Surveys of Youth (NLSY79 and NLSY97), focusing on height measurements collected over several years. The goal is to tidy and clean the height data to prepare it for further analysis. The dataset comprises responses from 12,686 individuals in the NLSY79 and 8,984 individuals in the NLSY97 surveys, with observations from various years. Here’s a detailed breakdown of the data cleaning and transformation process.
 
-https://www.kaggle.com/datasets/mitchellmarecki/national-longitudinal-survey-of-youth
+source data: https://www.kaggle.com/datasets/mitchellmarecki/national-longitudinal-survey-of-youth
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
@@ -46,13 +46,6 @@ suppressMessages(library(dplyr))
 The raw survey responses provided in `Project1Data.csv` are not in a
 tidy format. Unfortunately, height observations for each survey year are
 stored in columns instead of rows.
-
-Tidy the data found in `Project1Data.csv`. Use the provided meta-data in
-`Project1DataHeaders.csv` to map columns to their respective years and
-values.
-
-Store the result of your work in a new tibble, `height_data_tidy`. It
-should have the following five columns:
 
 CASEID - Contains the unique identifier for an individual survey
 participant sex - Contains the sex for the survey respondents. year -
