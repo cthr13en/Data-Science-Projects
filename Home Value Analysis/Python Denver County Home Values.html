@@ -7483,8 +7483,9 @@ a.anchor-link {
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h1 id="Home-Value-Analysis">Home Value Analysis<a class="anchor-link" href="#Home-Value-Analysis">¶</a></h1>
-<h2 id="The-Question-/-Problem">The Question / Problem<a class="anchor-link" href="#The-Question-/-Problem">¶</a></h2><p>You have been engaged as an independent auditor by the Denver County Assessor's Office to assist with some crucial analyses.</p>
-<h3 id="Annual-Report-Insights">Annual Report Insights<a class="anchor-link" href="#Annual-Report-Insights">¶</a></h3><p>The Assessor's Office is preparing to release their annual report on the valuation of residential single-family properties. They have asked you to thoroughly examine the data and identify at least two key findings that can be highlighted in their annual report to the public.</p>
+<h2 id="Introduction">Introduction<a class="anchor-link" href="#Introduction">¶</a></h2><p>In real estate, accurate property valuation is crucial for both buyers and sellers. This project leverages historical sales data to estimate the value of single-family homes using a K-Nearest Neighbors (KNN) regression algorithm. Our objective is to predict the value of a new property by analyzing recent sales of comparable homes in the same neighborhood.</p>
+<p>To achieve this, we have processed and filtered sales data to focus on recent transactions, ensuring that our model reflects current market conditions. We then employ KNN regression to find the most similar properties based on key features—such as living space, age, and basement condition—and compute the average price of these similar homes to estimate the value of the new property.</p>
+<p>This project addresses important ethical considerations in addition to technical implementation. We explore potential biases in the dataset, algorithm sensitivity's impact, and normalization's importance. Furthermore, we emphasize the need for an appeal process to ensure fairness and accuracy in property valuation. By combining advanced data analytics with a thorough ethical review, this project aims to deliver a robust and equitable approach to property valuation.</p>
 </div>
 </div>
 </div>
@@ -8590,8 +8591,8 @@ Name: totalAssessedVal, dtype: float64</pre>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="Estimate-Home-Values">Estimate Home Values<a class="anchor-link" href="#Estimate-Home-Values">¶</a></h3><p>The Assessors Office needs help improving their valuation process for residential single family properties.  They have asked you to write a KNN alogorithm to value new homes based on similar home sales.  By law, residential properties must be valued by using a "market approach". This predicts the price a property would bring on the open market in a transaction between a willing, informed, and knowledgeable buyer and seller.  A property can be valued through the process of analyzing comparable sales.  A comparable sale is any qualified sale in the last 5 years (January 2015 - December 2020).</p>
-<p>The central factors used by the Assessors for property valuation are:</p>
+<h3 id="Estimate-Home-Values">Estimate Home Values<a class="anchor-link" href="#Estimate-Home-Values">¶</a></h3><p>A K-Nearest Neighbors (KNN) algorithm is being developed to estimate the value of new homes based on recent comparable sales to improve the valuation process for residential single-family properties. By law, residential properties must be valued using the "market approach," which estimates a property's value based on what it would fetch in a transaction between a knowledgeable buyer and seller in the open market. This approach involves analyzing sales of comparable properties, defined as any qualified sale from the past five years (January 2015 - December 2020).</p>
+<p>Key factors considered in the valuation process include:</p>
 <ul>
 <li>Location</li>
 <li>Living Area (SQFT)</li>
@@ -8610,7 +8611,7 @@ Name: totalAssessedVal, dtype: float64</pre>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Load Sales Info not sure if I need it for the KNN</span>
-<span class="n">sales</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">'/Users/cristianthirteen/Downloads/Notre Dame/Python FA23/final project/sales.csv'</span><span class="p">)</span>
+<span class="n">sales</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">'/sales.csv'</span><span class="p">)</span>
 
 
 <span class="c1"># Convert 'tdate' to datetime format</span>
@@ -8775,7 +8776,8 @@ memory usage: 2.2+ MB
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="Ethics-Review">Ethics Review<a class="anchor-link" href="#Ethics-Review">¶</a></h3><p>Fairness and accuracy are vitally important.  If the assessed values are too high, the property owners will overpay in taxes.  If the assessed values are too low then we may fall short of the capital needed to cover the budget approved by legislators.  As such, thinking through the impact of how we predict home prices is vitial.</p>
+<h3 id="Ethics-Review">Ethics Review<a class="anchor-link" href="#Ethics-Review">¶</a></h3><p>Fairness and accuracy are crucial in property valuation. Overestimated values can lead to property owners paying excessive taxes, while undervalued properties might result in insufficient capital to meet budget requirements. Therefore, carefully considering the impact of our price prediction methods is vital.</p>
+<p>Building and deploying a predictive model like KNN requires attention to ethical considerations and model performance. Ensuring transparency and accountability throughout the model-building process is essential. This includes regularly reviewing and updating the model and documenting features, methodologies, and assumptions to maintain ethical standards. Key considerations involve addressing potential biases from unrepresentative training data, managing the risk of overfitting or underfitting based on the choice of K and evaluating the impact of irrelevant features and missing or incorrect data. To ensure fairness, it is important to use a diverse and unbiased dataset, select an appropriate K, and focus on relevant features. Transparency about the model’s limitations and conducting regular audits are crucial for upholding fairness and accuracy.</p>
 </div>
 </div>
 </div>
@@ -8786,39 +8788,7 @@ memory usage: 2.2+ MB
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p><strong>Answer</strong></p>
-<p>Building and deploying a predictive model such as KNN demands a delicate balance between various factors to ensure ethical considerations and model performance. Striving for transparency and accountability throughout the model-building process is crucial. Regularly reviewing and updating the model and documenting features, methodology, and assumptions establish a foundation for ethical use.</p>
-<p>It is also essential to consider potential pitfalls of KNN, like bias arising from skewed or unrepresentative training data, the risk of overfitting or underfitting based on the choice of K, the impact of irrelevant features on predictions, and the consequences of missing or incorrect data. Ensuring fairness involves using a representative and unbiased dataset, selecting an appropriate K, and considering only relevant features. As data scientists, we should also have transparency about the model's limitations and perform regular audits, which can help maintain fairness.</p>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="EDA-for-the-Annual-Report-Insights">EDA for the Annual Report Insights<a class="anchor-link" href="#EDA-for-the-Annual-Report-Insights">¶</a></h2><h3 id="Goal">Goal<a class="anchor-link" href="#Goal">¶</a></h3><p>Perform EDA on the property valuations for "1-Story" and "2-3 Story" single family residential buildings.  Identify at least 2 key insights and/or graphs that tell a story about the valuations for these properties for the annual report.</p>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="Explore-the-Data">Explore the Data<a class="anchor-link" href="#Explore-the-Data">¶</a></h3><p>Tasks:</p>
-<ul>
-<li>Explore the relationships in the data (univariate, bivariate, etc)</li>
-<li>Explore outliers</li>
-<li>Provide a summary of your findings.<ul>
-<li>Highlight at least 2 key findings and/or graphs that you feel would be interesting to share in the Annual Report to Homeowners.</li>
-</ul>
-</li>
-</ul>
+<h2 id="EDA-Property-Valuations">EDA Property Valuations<a class="anchor-link" href="#EDA-Property-Valuations">¶</a></h2><p>We conducted exploratory data analysis (EDA) on property valuations for "1-Story" and "2-3 Story" single-family residential buildings to uncover trends and insights. This involves investigating relationships within the data through univariate and bivariate analyses, examining outliers, and summarizing key findings.</p>
 </div>
 </div>
 </div>
@@ -9228,40 +9198,8 @@ In summary, the dataset is characterized by most homes in the lower price range.
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="Algorithmic-Thinking">Algorithmic Thinking<a class="anchor-link" href="#Algorithmic-Thinking">¶</a></h2><h3 id="Objective">Objective<a class="anchor-link" href="#Objective">¶</a></h3><p>Our goal is to predict the value of a new single-family property given comparable sales data.  One way we might estimate the value of a home is to look at the value of <em>k</em>-similar nearby homes that have recently sold.  The average sales price of those <em>k</em> homes could then be used as the predicted valuation for our new home.  This process is effectively how the K-Nearest Neighbor Algorithm (KNN) works for regression problems.</p>
-<p>KNN is considered a supervised machine learning algorithm that can be used to solve both classification and regression problems.  As shown above, we can be used to solve nonparametric regression problems such as predicting the price of a new home based on <em>similar</em> nearby homes.</p>
-<p>Recall the central factors used for property valuation:</p>
-<ul>
-<li>Location</li>
-<li>Living Area (SQFT)</li>
-<li>Age of the Home</li>
-<li>Finished Basement</li>
-</ul>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="Read-and-Prepare-the-Sales-Data">Read and Prepare the Sales Data<a class="anchor-link" href="#Read-and-Prepare-the-Sales-Data">¶</a></h3><p>Tasks:</p>
-<ul>
-<li>Load the sales.csv</li>
-<li>Keep only qualified sales (sales.sales_cd == 'Q') and sales.price &gt; 0.</li>
-<li>Keep only sales in the last 5 years (01/01/2015 and 12/31/2020)</li>
-<li>Join "sales" with the necessary data frames to add the following columns<ul>
-<li>nh, this is the neighborhood number that must be used to identify comparable sales by location.</li>
-<li>totalActualVal</li>
-<li>builtYear</li>
-<li>EffectiveYear</li>
-<li>TotalFinishedSF</li>
-<li>A boolean flag (1/0) for if the basement is finished that you will need to create</li>
-</ul>
-</li>
-</ul>
+<h2 id="Algorithmic-Thinking">Algorithmic Thinking<a class="anchor-link" href="#Algorithmic-Thinking">¶</a></h2><h3 id="Objective">Objective<a class="anchor-link" href="#Objective">¶</a></h3><p>Our goal is to predict the value of a new single-family property using the K-Nearest Neighbors (KNN) algorithm. This approach estimates property values by averaging the sales prices of k-similar nearby homes. To do this, we will work with data from sales.csv, focusing on qualified sales where sales.sales_cd == 'Q' and sales.price &gt; 0, and include only sales from the past 5 years (01/01/2015 to 12/31/2020). We will enhance our dataset by adding columns such as nh (neighborhood number), totalActualVal, builtYear, EffectiveYear, TotalFinishedSF, and a boolean flag indicating whether the basement is finished (1 for yes, 0 for no).</p>
+<p>KNN is a supervised machine learning algorithm suitable for regression problems. It predicts the price of a new home by finding similar properties in the dataset, based on factors such as location, living area (SQFT), age of the home, and the presence of a finished basement.</p>
 </div>
 </div>
 </div>
@@ -9273,23 +9211,13 @@ In summary, the dataset is characterized by most homes in the lower price range.
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Used my previous load</span>
-<span class="c1"># Load the sales data</span>
-<span class="c1">#sales_data = pd.read_csv('/Users/cristianthirteen/Downloads/Notre Dame/Python FA23/final project/sales.csv')</span>
-
-<span class="c1"># Filter qualified sales with price &gt; 0 and sales_cd == 'Q'</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Filter qualified sales with price &gt; 0 and sales_cd == 'Q'</span>
 <span class="n">qualified_sales</span> <span class="o">=</span> <span class="n">merged_data</span><span class="p">[(</span><span class="n">merged_data</span><span class="p">[</span><span class="s1">'sales_cd'</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'Q'</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">merged_data</span><span class="p">[</span><span class="s1">'price'</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)]</span>
 
 <span class="c1"># Keep only sales in the last 5 years (01/01/2015 to 12/31/2020)</span>
 <span class="n">qualified_sales_5yrs</span> <span class="o">=</span> <span class="n">qualified_sales</span><span class="p">[(</span><span class="n">qualified_sales</span><span class="p">[</span><span class="s1">'date_of_sale'</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="s1">'2015-01-01'</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">qualified_sales</span><span class="p">[</span><span class="s1">'date_of_sale'</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="s1">'2020-12-31'</span><span class="p">)]</span>
 
 <span class="c1"># Load the necessary data frames</span>
-
-<span class="c1"># Join sales with necessary data frames</span>
-<span class="c1"># joined_sales = qualified_sales_5yrs.merge(merged_data[['nh', 'totalActualVal', 'builtYear', 'EffectiveYear', 'livingSpaceSqft']], on='strap', how='inner')</span>
-
-<span class="c1"># # Create a boolean flag for finished basement (1 if finished, 0 otherwise)</span>
-<span class="c1"># joined_sales['finished_basement_flag'] = (joined_sales['bsmtSF'] &gt; 0).astype(int)</span>
 
 <span class="c1"># Display the resulting DataFrame</span>
 <span class="n">simplified</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'builtYear'</span><span class="p">,</span> <span class="s1">'EffectiveYear'</span><span class="p">,</span> <span class="s1">'nbrBedRoom'</span><span class="p">,</span> <span class="s1">'livingSpaceSqft'</span><span class="p">,</span> <span class="s1">'age'</span><span class="p">,</span> <span class="s1">'nh'</span><span class="p">,</span> <span class="s1">'totalActualVal'</span><span class="p">,</span> <span class="s1">'totalAssessedVal'</span><span class="p">,</span> <span class="s1">'price'</span><span class="p">,</span> <span class="s1">'status_cd'</span><span class="p">,</span> <span class="s1">'date_of_sale'</span><span class="p">]</span>
@@ -9415,28 +9343,6 @@ In summary, the dataset is characterized by most homes in the lower price range.
 </div>
 </div>
 </div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="Property-Valuation-using-KNN">Property Valuation using KNN<a class="anchor-link" href="#Property-Valuation-using-KNN">¶</a></h3><p>Tasks:</p>
-<ul>
-<li>Complete the below function <strong>predict_knn()</strong> so that it finds the k-most similar sales properties in the appraisal neighborhood (nh) and returns the average sale price for those <em>k</em> properties as the predicted value (y_hat).</li>
-</ul>
-<h4 id="KNN-Regression-Pseudo-Code">KNN Regression Pseudo Code<a class="anchor-link" href="#KNN-Regression-Pseudo-Code">¶</a></h4><p>Given a new data point:</p>
-<ol>
-<li>Calculate the Euclidean distance between the new data point and all known datapoints in the dataset.</li>
-<li>Select the <em>k</em> closest datapoints.</li>
-<li>Average the target variable for the <em>k</em> closest data points.</li>
-</ol>
-<p>Euclidean Distance formula for 3-dimenstions where p_1 and q_1 is finished_sqft, p2 and q_2 is home_age, and p3 and q_3 is finished_basement:</p>
-<p>$d(p,q)=\sqrt{(p_1-q_1)^2 + (p_2-q_2)^2 + (p_3-q_3)^2}$$</p>
-</div>
-</div>
-</div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
@@ -9445,23 +9351,7 @@ In summary, the dataset is characterized by most homes in the lower price range.
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># This function is incomplete, fix it!</span>
-<span class="c1"># def predict_knn(sales_data, k=3, nh=200, finished_sqft=1500, home_age=5, finished_basement=False):</span>
-    
-<span class="c1">#     # Filter down to our sales data to the provided neighborhood number, nh.</span>
-<span class="c1">#     # sales_data = sales_data[sales_data.nh == nh]</span>
-    
-<span class="c1">#     # Calculate the Euclidean Distance for finished_sqft, home_age, and finished_basement for every sale in our nh.</span>
-
-<span class="c1">#     # Keep only the *k* closeset rows and take the mean of our target variable "price"</span>
-<span class="c1">#     y_hat = pd.Series([100000,110000,150000]).mean()</span>
-    
-<span class="c1">#     return y_hat</span>
-
-
-
-<span class="c1"># This is my fix</span>
-<span class="k">def</span> <span class="nf">predict_knn</span><span class="p">(</span><span class="n">qualified_sales_5yrs</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">nh</span><span class="o">=</span><span class="mi">201</span><span class="p">,</span> <span class="n">livingSpaceSqft</span><span class="o">=</span><span class="mi">1500</span><span class="p">,</span> <span class="n">age</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">bsmtCond</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">predict_knn</span><span class="p">(</span><span class="n">qualified_sales_5yrs</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">nh</span><span class="o">=</span><span class="mi">201</span><span class="p">,</span> <span class="n">livingSpaceSqft</span><span class="o">=</span><span class="mi">1500</span><span class="p">,</span> <span class="n">age</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">bsmtCond</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 
     <span class="c1"># Create a copy of the DataFrame to avoid modifying the original.</span>
     <span class="n">data</span> <span class="o">=</span> <span class="n">qualified_sales_5yrs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
@@ -9494,10 +9384,7 @@ In summary, the dataset is characterized by most homes in the lower price range.
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># I was getting an error during validation and thought I would check nh values, unless i did something wrong there weren't any nh= 200</span>
-<span class="c1"># joined_sales.loc[joined_sales['nh'].between(200, 201), 'nh'].unique()</span>
-
-<span class="c1"># Validate your function works for a new home in nh 201 that is 1500 sqft, 5 years old, and does not have a finished basement.</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Validate your function works for a new home in nh 201 that is 1500 sqft, 5 years old, and does not have a finished basement.</span>
 <span class="n">predict_knn</span><span class="p">(</span><span class="n">qualified_sales_5yrs</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">nh</span><span class="o">=</span><span class="mi">201</span><span class="p">,</span> <span class="n">livingSpaceSqft</span><span class="o">=</span><span class="mi">1500</span><span class="p">,</span> <span class="n">age</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">bsmtCond</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -9574,7 +9461,7 @@ In summary, the dataset is characterized by most homes in the lower price range.
 <span class="n">columns_to_show</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'homeDesign'</span><span class="p">,</span> <span class="s1">'builtYear'</span><span class="p">,</span> <span class="s1">'nbrBedRoom'</span><span class="p">,</span> <span class="s1">'livingSpaceSqft'</span><span class="p">,</span> <span class="s1">'bsmtCond'</span><span class="p">,</span> <span class="s1">'age'</span><span class="p">,</span> <span class="s1">'str_num'</span><span class="p">,</span> <span class="s1">'str'</span><span class="p">,</span> <span class="s1">'city'</span><span class="p">,</span> <span class="s1">'sub_dscr'</span><span class="p">,</span> <span class="s1">'nh'</span><span class="p">,</span> <span class="s1">'totalActualVal'</span><span class="p">,</span> <span class="s1">'totalAssessedVal'</span><span class="p">,</span> <span class="s1">'sales_cd'</span><span class="p">,</span> <span class="s1">'price'</span><span class="p">,</span> <span class="s1">'date_of_sale'</span><span class="p">]</span>
 
 
-<span class="c1"># Your code here and thoughts here.</span>
+<span class="c1"># sample</span>
 <span class="n">random_homes</span> <span class="o">=</span> <span class="n">qualified_sales_5yrs</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
 <span class="n">random_homes</span><span class="p">[</span><span class="n">columns_to_show</span><span class="p">]</span>
 </pre></div>
@@ -10051,28 +9938,11 @@ Average Error: 73446.67
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="Ethics-Review">Ethics Review<a class="anchor-link" href="#Ethics-Review">¶</a></h2><p>Whenever we are modeling our data, it's critical that we take time to consider the impact our algorithms have on people's lives.</p>
-<ol>
-<li>Describe one possible source of bias that exist might exist in this dataset and impact our estimated valuation?</li>
-<li>What potential harm could arise due to how our knn regression algorithm works?  For example, what if <em>k</em> is too low or too high?  What impact can outliers have?  Would it make sense to normalize (e.g. standardize our values between 0 and 1) for our data points (sqft, age, basement) before calculating Euclidean Distance?</li>
-<li>Should we have an appeal process for people that may be harmed by the results of our model?</li>
+<h2 id="Ethics-Review">Ethics Review<a class="anchor-link" href="#Ethics-Review">¶</a></h2><ol>
+<li>When modeling data, it is crucial to consider the impact that algorithms can have on people's lives. One possible source of bias in this dataset could be socioeconomic factors. If the dataset predominantly includes homes from specific income brackets or neighborhoods, it might not represent the full diversity of the housing market. This bias could lead to inaccuracies in property valuations, either underestimating or overestimating values in areas with different socioeconomic characteristics, thus affecting the fairness and reliability of the valuations.</li>
+<li>When using the KNN regression algorithm, several potential harms must be considered. The performance of KNN can be sensitive to the choice of k. If k is too low, the model may be influenced too heavily by a few data points, leading to erratic predictions. Conversely, a high k can smooth out the model too much, potentially overlooking important local patterns. Outliers can disproportionately affect predictions, acting as misleading influences within this collective decision-making process. Normalizing data, such as standardizing features between 0 and 1, can help mitigate these issues by reducing sensitivity to varying scales and improving stability. However, this normalization process also introduces its own trade-offs that need to be carefully managed.</li>
+<li>Implementing an appeal process is essential to address potential harm from the model’s results. Such a process ensures fairness by allowing individuals to challenge and review the outcomes, accounting for factors that may not be explicitly captured in the data. This adds a layer of accountability and human judgment, recognizing that automated models have limitations in reflecting the full complexity of real-world situations. By including an appeal mechanism, we acknowledge these limitations and provide a pathway for addressing and rectifying any potential issues, thus promoting fairness and transparency in the model's application.</li>
 </ol>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h4 id="Answer">Answer<a class="anchor-link" href="#Answer">¶</a></h4><p>Possible Source of Bias:
-Bias can manifest in various ways, such as being influenced by specific regions or time periods, which could lead to a lack of representativeness for all results. One potential source of bias in the dataset could stem from socioeconomic factors. The estimated valuations may not accurately reflect the diversity in housing markets if the dataset predominantly includes homes from a specific income bracket or neighborhood. This bias could lead to underestimating or overestimating home values in areas with different socioeconomic characteristics.</p>
-<p>Potential Harm and Algorithm Sensitivity:
-The KNN regression algorithm's performance can be sensitive to the choice of k because it operates similarly to a collective decision-making process where the selection of 'k' plays a pivotal role. A low 'k' translates to too few people being asked, resulting in erratic predictions influenced by individual data points. Conversely, a high 'k' might oversmooth the model, causing it to overlook local patterns. Outliers, analogous to influential voices in this collective, can significantly skew predictions. While normalizing data, particularly standardizing features between 0 and 1, mitigates the algorithm's sensitivity to varying scales and enhances stability, it comes with inherent trade-offs.</p>
-<p>Appeal Process:
-An appeal process, allowing individuals to challenge results, ensures fairness, considering factors not explicitly in the data. Combining these considerations paints a holistic picture of the ethical considerations and challenges in deploying automated models. Implementing an appeal process is essential. It ensures fairness and accountability, acknowledging the limitations of automated models in capturing the complexity of real-world situations. This process allows for human judgment, considering factors that may not be explicitly present in the data but are relevant to what is being modeled.</p>
 </div>
 </div>
 </div>
