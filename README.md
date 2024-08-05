@@ -8,3 +8,13 @@ Customer Survey Analysis contains the code and data for analyzing customer satis
 - `dplyr`
 - `tidyr`
 - `purrr`
+
+# Home Value Analysis
+This project involves predicting property values using machine learning, specifically employing the K-Nearest Neighbors (KNN) regression algorithm. The aim is to estimate the value of new single-family homes based on comparable sales data. By analyzing recent sales of similar properties, the KNN algorithm determines the nearest neighbors' average price to predict the new property's valuation.
+
+## Packages Used
+- `pandas`
+- `numpy`
+- `scikit-learn`
+- `matplotlib`
+- `seaborn`
