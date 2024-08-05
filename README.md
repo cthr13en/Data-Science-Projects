@@ -30,5 +30,14 @@ This databricks project aims to classify the quality of red wine based on its ph
 - `mlflow`
 - `seaborn` and `matplotlib`
 
+# NLSY79 Part A
+This project aims to analyze and clean height data from the National Longitudinal Surveys of Youth (NLSY) datasets, explicitly focusing on the years 1980-2004 for NLSY79 and 1997-2017 for NLSY97. The goal is to tidy and visualize the height data to ensure accuracy and gain insights into height distributions by sex. The project involves transforming the data from a wide format to a tidy format, addressing missing values and outliers, and performing exploratory data analysis (EDA) to visualize height distributions.
+
+## Packages Used
+- `tidyverse`
+- `dplyr`
+- `tibble`
+
+
 
 
