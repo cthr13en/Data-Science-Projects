@@ -31,7 +31,7 @@ This databricks project aims to classify the quality of red wine based on its ph
 - `seaborn` and `matplotlib`
 
 # NLSY79 Part A 
-This project aims to analyze and clean height data from the National Longitudinal Surveys of Youth (NLSY) datasets, explicitly focusing on the years 1980-2004 for NLSY79 and 1997-2017 for NLSY97. The goal is to tidy and visualize the height data to ensure accuracy and gain insights into height distributions by sex. The project involves transforming the data from a wide format to a tidy format, addressing missing values and outliers, and performing exploratory data analysis (EDA) to visualize height distributions.
+This project aims to analyze and clean height data from the National Longitudinal Surveys of Youth (NLSY) datasets, explicitly focusing on the years 1980-2004 for NLSY79 and 1997-2017 for NLSY97. The goal is to tidy and visualize the height data to ensure accuracy and gain insights into height distributions by sex. The project involves transforming the data from a wide format to a tidy format, addressing missing values and outliers, and performing exploratory data analysis (EDA) to visualize height distributions. [View NLSY79 Part A ](https://github.com/cthr13en/Data-Science-Projects/tree/main/NLSY79%20Part%20A)
 
 ## Packages Used
 - `tidyverse`
@@ -39,14 +39,22 @@ This project aims to analyze and clean height data from the National Longitudina
 - `tibble`
 
 # NLSY79 Part B
-This project explores the relationship between income and various physical attributes, focusing primarily on hair color, education level, and gender. The aim is to understand how these factors interact and influence income levels. The analysis includes summarizing income distributions by hair color, examining the effects of education on income, and investigating gender-based income disparities.
+This project explores the relationship between income and various physical attributes, focusing primarily on hair color, education level, and gender. The aim is to understand how these factors interact and influence income levels. The analysis includes summarizing income distributions by hair color, examining the effects of education on income, and investigating gender-based income disparities. [View NLSY79 Part A ](https://github.com/cthr13en/Data-Science-Projects/tree/main/NLSY79%20Part%20B)
 
 ## Packages Used
 - `ggplot2`
 - `dplyr`
 - `tidyr`
 
-  
+# Predictive Modeling of Cancer Death Rates
+This project aims to analyze and predict cancer outcomes using a dataset of cancer-related features. The primary objective is to develop and evaluate machine learning models that can accurately classify cancer types or predict cancer progression based on various clinical and biological features. This can help in understanding cancer patterns and potentially assist in early diagnosis and personalized treatment planning. [View Predictive Modeling of Cancer Death Rates](https://github.com/cthr13en/Data-Science-Projects/tree/main/Machine%20Learning%20with%20Spark%20using%20Delta%20Lake%20and%20MLFlow)
+
+## Packages Used
+- `tidyverse`
+- `dplyr`
+- `MASS`
+- `faraway`
+- `rms` and `skimr`
 
 
 
