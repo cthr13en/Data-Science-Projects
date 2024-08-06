@@ -47,7 +47,7 @@ This project explores the relationship between income and various physical attri
 - `tidyr`
 
 # Predictive Modeling of Cancer Death Rates
-This project aims to analyze and predict cancer outcomes using a dataset of cancer-related features. The primary objective is to develop and evaluate machine learning models that can accurately classify cancer types or predict cancer progression based on various clinical and biological features. This can help in understanding cancer patterns and potentially assist in early diagnosis and personalized treatment planning. [View Predictive Modeling of Cancer Death Rates](https://github.com/cthr13en/Data-Science-Projects/tree/main/Machine%20Learning%20with%20Spark%20using%20Delta%20Lake%20and%20MLFlow)
+This project aims to analyze and predict cancer outcomes using a dataset of cancer-related features. The primary objective is to develop and evaluate machine learning models that can accurately classify cancer types or predict cancer progression based on various clinical and biological features. This can help in understanding cancer patterns and potentially assist in early diagnosis and personalized treatment planning. [View Predictive Modeling of Cancer Death Rates](https://github.com/cthr13en/Data-Science-Projects/tree/main/Predictive%20Modeling%20Cancer)
 
 ## Packages Used
 - `tidyverse`
