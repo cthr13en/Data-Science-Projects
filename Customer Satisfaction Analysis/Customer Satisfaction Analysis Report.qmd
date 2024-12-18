@@ -1,7 +1,7 @@
 ---
-title: "DS 60632 Behavioral Data Science "
-subtitle: "Final Project"
-author: "Cristian Thirteen"
+title: "Customer Satisfaction Analysis Report"
+subtitle: "San Francisco International Airport (SFO) 2010 Customer Survey"
+author: "Cristian T"
 date: today
 format: 
    html:
@@ -57,7 +57,7 @@ suppressMessages(library(dplyr))
 suppressMessages(library(sentimentr))
 suppressMessages(library(caret))
 
-dat <- read.table("/Users/cristian/Downloads/ND Data/SFO_survey_withText.txt", header = T)
+dat <- read.table("SFO_survey_withText.txt", header = T)
 
 # Get an overview of Data Structure
 # glimpse(dat)
@@ -115,10 +115,6 @@ factor_descriptions <- c(
 # rename columns
 customer_satisfaction_data <- customer_satisfaction_data %>%
   rename_with(~ factor_descriptions[.], everything())
-
-
-
-
 
 ```
 
@@ -371,10 +367,6 @@ title("Four-Factor Model with Promax Rotation")
 
 # Show condensed Fit
 fitMeasures(fit_five_promax_mod, fit.index)
-
-
-
-
 
 ```
 
@@ -809,7 +801,6 @@ summary(anova_interaction)
 ```
 
 To assess the differences, we performed a two-way ANOVA. The results yielded the following p-values: for age group (0.00525) and gender (0.00268), both of which are less than the significance level (alpha = 0.05). Therefore, we reject the null hypothesis, indicating significant differences in the mean sentiment scores between different age groups and genders. However, the p-value for the interaction between age and gender (0.23301) is greater than the significance level, leading us to fail to reject the null hypothesis for the interaction. This indicates that there is no significant interaction effect between age group and gender on the mean sentiment scores.
-
 
 
 # Conclusion: Summary of Findings and Implications
