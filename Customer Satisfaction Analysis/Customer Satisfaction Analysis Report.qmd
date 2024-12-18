@@ -1,0 +1,854 @@
+---
+title: "DS 60632 Behavioral Data Science "
+subtitle: "Final Project"
+author: "Cristian Thirteen"
+date: today
+format: 
+   html:
+     df-print: paged
+     embed-resources: true
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+# Introduction
+This report presents an in-depth analysis of customer satisfaction based on the San Francisco International Airport (SFO) 2010 Customer Survey. With a set of questions addressing airport services and operations—including satisfaction with amenities, parking, information, and transportation—the survey aims to capture passenger perceptions across key service areas. Given the vital role of customer satisfaction in shaping passenger experiences and fostering loyalty, this analysis identifies and evaluates the factors that contribute to customer contentment or dissatisfaction at SFO.
+
+Using Exploratory Factor Analysis (EFA) and Confirmatory Factor Analysis (CFA), the report uncovers underlying themes in customer satisfaction. EFA reveals the latent factors that structure customer responses, while CFA validates these dimensions to ensure a consistent, reliable framework for understanding customer needs. Demographic comparisons further enhance the analysis by highlighting how distinct passenger groups (e.g., by age, gender, and income) perceive airport services differently, thus informing targeted improvements.
+
+To complement the factor analysis, we used sentiment scoring, which was conducted to quantify the sentiment expressed in structured feedback on service improvements. The analysis uses aggregate sentiment scores to capture the general sentiment intensity for specific aspects, such as dining options, retail offerings, and airport layout. This approach provides nuanced insights into positive and negative sentiment trends to pinpoint areas of praise and opportunities for enhancement.
+
+The primary objective of this analysis is to deliver actionable insights that SFO executives can use to enhance service quality, improve satisfaction, and build passenger loyalty. By understanding the attributes that most influence satisfaction, SFO can strategically enhance strengths and address areas needing improvement, ensuring a more positive and memorable experience for all passengers. This report lays a strong foundation for informed decision-making and strategic planning within the competitive landscape of airport services.
+
+
+
+# Exploratory Factor Analysis (EFA) on Passenger Satisfaction
+Exploratory Factor Analysis (EFA) was conducted to identify the underlying dimensions of customer satisfaction regarding airport services at San Francisco International Airport (SFO). This analysis focused on passenger ratings of the following attributes:
+
+- 6a. Artwork and exhibitions
+- 6b. Restaurants
+- 6c. Retail shops and concessions
+- 6d. Signs and directions inside SFO
+- 6e. Escalators, elevators, moving walkways
+- 6f. Information on screens and monitors
+- 6g. Information booths (lower level near baggage claim) 
+- 6h. Information booths (upper level – departure area) 
+- 6i. Signs and directions on SFO airport roadways
+- 6j. Airport parking facilities
+- 6k. AirTrain
+- 6l. Long-term parking lot shuttle
+- 6m. Airport rental car center
+- 6n. SFO Airport as a whole
+
+Passengers rated these attributes on a scale from 1 (Unacceptable) to 5 (Outstanding), with additional options for those who had never used or visited the facilities or considered the question not applicable.
+
+#### Data Preparation
+To facilitate this analysis, we utilized several R libraries, and began by loading the dataset and inspecting its structure to ensure that the data was ready for analysis. This initial step helped us understand the variables at play and set the stage for the subsequent exploratory factor analysis.
+```{r}
+suppressMessages(library(tidyverse))
+suppressMessages(library(skimr))
+suppressMessages(library(ggplot2))
+suppressMessages(library(stringr))
+suppressMessages(library(psych))
+suppressMessages(library(lavaan))
+suppressMessages(library(semPlot))
+suppressMessages(library(dplyr))
+suppressMessages(library(sentimentr))
+suppressMessages(library(caret))
+
+dat <- read.table("/Users/cristian/Downloads/ND Data/SFO_survey_withText.txt", header = T)
+
+# Get an overview of Data Structure
+# glimpse(dat)
+
+
+# Select the 14 customer satisfaction questions
+customer_satisfaction_data <- dat %>% dplyr::select(Q6A:Q6N)
+
+
+# Apply skim function to view summary statistics
+skim(customer_satisfaction_data)
+
+# Set a seed for reproducibility
+set.seed(1842)
+
+#Create a vector of row indices
+row_indices <- 1:nrow(customer_satisfaction_data)
+
+# Randomly sample 70% of the data for the training set
+train_indices <- sample(row_indices, size = 0.7 * length(row_indices))
+
+# Create the training and test sets
+train_data <- customer_satisfaction_data[train_indices, ]
+test_data <- customer_satisfaction_data[-train_indices, ]
+
+# Verify the split
+head(train_data)
+head(test_data)
+nrow(train_data) # Number of rows in training data
+nrow(test_data) # Number of rows in test data
+
+```
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+
+# Descriptions for each factor
+factor_descriptions <- c(
+  Q6A = "Artwork Exhibitions",  
+  Q6B = "Restaurants",   
+  Q6C = "Retail Shops",
+  Q6D  = "Indoor Signage",
+  Q6E  = "Escalators Elevators",
+  Q6F  = "Screen Information",
+  Q6G  = "Baggage Info",
+  Q6H  = "Departure info",
+  Q6I  = "Roadway Signs",
+  Q6J  = "Parking",
+  Q6K  = "AirTrain",
+  Q6L  = "Shuttle Parking",
+  Q6M  = "Rental Car",
+  Q6N  = "Airport Experience"
+)
+
+
+# rename columns
+customer_satisfaction_data <- customer_satisfaction_data %>%
+  rename_with(~ factor_descriptions[.], everything())
+
+
+
+
+
+```
+
+We extracted a subset of the dataset, focusing on the 14 questions related to customer satisfaction, labeled from Q6A to Q6N. We used the skim function to summarize the data, confirming that it contains 3,234 rows and 14 numeric columns. The summary revealed some missing values, with overall response completeness ranging from 93.3% to 97.7%. Overall, the data appeared to be in good shape for analysis.
+
+To ensure the reproducibility of our analysis, we set a random seed, which enabled us to create a vector of all row indices. This vector was utilized to randomly sample 70% of the data for the training set, while the remaining 30% was allocated for testing. Consequently, the training dataset comprises 2,263 rows, while the test dataset contains 971 rows.
+
+#### Kaiser-Meyer-Olkin Test and Factor Extraction
+The analysis began with the Kaiser-Meyer-Olkin (KMO) test on the training dataset, yielding an overall Measure of Sampling Adequacy (MSA) of 0.82. Individual MSAs for the items ranged from 0.70 to 0.93, indicating that the data is suitable for factor analysis. Following this, a parallel analysis suggested extracting five factors, though manual counting indicated that four factors might be more appropriate. We conducted exploratory factor analysis (EFA) with 4 and 5 factors to compare the results and their implications for passenger satisfaction.
+
+```{r}
+
+# Use KMO to assess adequacy
+KMO(train_data)
+
+# Determine the number of factors to extract
+fa.parallel(train_data)
+
+```
+
+We explored two variations for each model: the Four-Factor Model and the Five-Factor Model with Varimax rotation, which aims to achieve orthogonality (making factors uncorrelated or independent from one another), as well as the Four-Factor Model and Five-Factor Model with Promax rotation, which allows for correlated factors.
+
+```{r}
+############## four-factor EFA model Varimax ############## 
+# Fit the four-factor FA model with orthogonal rotation (varimax):
+train_FA_orth_4 <- fa(train_data, nfactors = 4, rotate = "varimax")
+
+# Print the orthogonal rotation factor loadings
+print(train_FA_orth_4$loadings, cutoff = 0.001, digits = 3, sort = TRUE)
+
+
+# Display the plot
+fa.diagram(train_FA_orth_4, 
+           main = "4 Factor Orthogonal (Varimax)")
+```
+#### Four-Factor Model with Varimax Rotation
+The Four-Factor Model with Varimax Rotation provides a clear structure for understanding San Francisco International Airport (SFO) passenger satisfaction. Here, MR1 assesses the effectiveness of signage and information provided to passengers, highlighting attributes like signs and directions that help travelers navigate the airport. MR2 focuses on the convenience and efficiency of transportation options within the airport, including the AirTrain, parking facilities, and shuttle services. MR3 emphasizes the importance of information booths for assisting passengers. MR4 pertains to the quality and variety of food and shopping options available to passengers. These four factors explain 53.3% of the total variance in passenger satisfaction, indicating that more than half of the differences in passenger satisfaction can be attributed to these four factors.
+
+Transitioning to the Five-Factor Model with Varimax Rotation, we introduce an additional factor to enhance our understanding of passenger experiences.
+
+```{r}
+############## five-factor EFA model Varimax ############## 
+
+# Fit the five-factor FA model with orthogonal rotation (varimax):
+train_FA_orth <- fa(train_data, nfactors = 5, rotate = "varimax")
+
+# Print the orthogonal rotation factor loadings
+print(train_FA_orth$loadings, cutoff = 0.001, digits = 3, sort = TRUE)
+
+# Display the plot
+fa.diagram(train_FA_orth, 
+           main = "5 factor orthogonal (varimax)")
+```
+#### Five-Factor Model with Varimax Rotation
+MR1 shows high loadings for the importance of clear signage and information for passengers. MR2 has moderate loadings with attributes related to the parking facilities and shuttle services, along with roadway signs. MR3 indicates that this factor is closely associated with the availability of directional aids and information booths. MR4 captures dining and shopping options, and MR5 encompasses rental cars and AirTrain services. Together, these five factors explain 59% of the total variance in passenger satisfaction, suggesting that these identified factors can explain a substantial amount of the variance in passenger satisfaction.
+
+
+Next, we explored the Four-Factor EFA Model with Promax Rotation.
+
+```{r}
+
+############ Clean data for Promax ############ 
+customer_satisfaction_data_clean <- dat %>% dplyr::select(Q6A:Q6N) %>% drop_na()
+set.seed(1842)
+row_indices_clean <- 1:nrow(customer_satisfaction_data_clean)
+train_indices_clean <- sample(row_indices_clean, size = 0.7 * length(row_indices_clean))
+train_data_clean <- customer_satisfaction_data_clean[train_indices_clean, ]
+test_data_clean <- customer_satisfaction_data_clean[-train_indices_clean, ]
+nrow(train_data_clean) # Number of rows in training data
+
+
+############## four-factor EFA model Promax ############## 
+
+# Fit the five-factor FA model with oblique rotation (promax):
+train_data_clean_FA_obliq_4 <- fa(train_data_clean, nfactors = 4, rotate = "promax") #typically recommended
+
+# Print the oblique rotation factor loadings
+print(train_data_clean_FA_obliq_4$loadings, cutoff = 0.001, digits = 3, sort = TRUE)
+
+# Display the plot
+fa.diagram(train_data_clean_FA_obliq_4, 
+           main = "4 factor oblique (Promax Rotation)")
+```
+#### Four-Factor Model with Promax Rotation
+MR1 indicates that passengers highly value clear signage and screen information. MR2 represents various transportation services available at the airport, such as parking facilities, AirTrain, and rental cars, implying that the convenience and availability of transportation significantly affect passenger experiences. MR3 loads heavily on this factor, demonstrating that passengers appreciate effective assistance and the presence of information booths. MR4 shows that food and shopping options available in the airport are desirable. Together, these four factors explain a cumulative variance of 55.5%, suggesting that they cover a significant portion of the underlying structure of passenger satisfaction.
+
+Lastly, we examined the Five-Factor EFA Model with Promax Rotation. 
+
+```{r}
+
+############## five-factor EFA model Promax ############## 
+
+# Fit the five-factor FA model with oblique rotation (promax):
+train_data_clean_FA_obliq <- fa(train_data_clean, nfactors = 5, rotate = "promax") #typically recommended
+
+# Print the oblique rotation factor loadings
+print(train_data_clean_FA_obliq$loadings, cutoff = 0.001, digits = 3, sort = TRUE)
+
+# Display the plot
+fa.diagram(train_data_clean_FA_obliq, 
+            main = "5 Factor Oblique (Promax Rotation)")
+
+```
+#### Five-Factor Model with Promax Rotation
+MR1 indicates that passengers highly value clear signage and screen information. MR2 reflects the importance of transportation services with significant value on efficient parking options. MR3 shows strong loadings on information desks and personnel available for guidance. MR4 shows positive loadings, indicating that passengers value the quality and variety of food and shopping options available. MR5 reflects the availability and quality of transportation options like rental cars and the AirTrain, which are crucial for passenger satisfaction. Together, these five factors account for 63% of the total variance in passenger satisfaction, indicating that these factors effectively capture the underlying structure of the data.
+
+#### Correlation Matrices for Factor Models
+```{r}
+# Correlation matrix for 5-factor model
+print(train_data_clean_FA_obliq$Phi)
+
+# Correlation matrix for 4-factor model
+print(train_data_clean_FA_obliq_4$Phi)
+```
+
+Correlation matrices from both Promax Rotation models provide additional insights into factor interrelationships. They reveal how different aspects of customer experience are linked, allowing for targeted interventions that can improve overall satisfaction. 
+
+
+In the Five-Factor model, MR1 (Navigating Inside) has a strong correlation of 0.6216 with MR4 (Navigating Outside), suggesting that enhancements to signage could lead to increased overall satisfaction. The correlation of 0.6880 between MR2 (Parking and Shuttles) and MR5 (Airport and Rental Services) indicates that improving parking facilities may enhance transportation services. In the Four-Factor model, the correlation of 0.6144 between Overall Satisfaction and Amenities remains significant, underscoring the interdependencies between these factors.
+
+# Confirmatory Factor Analysis (CFA) on Passenger Satisfaction
+We conducted a Confirmatory Factor Analysis (CFA) on the test dataset, using the best models identified from our Exploratory Factor Analysis (EFA). This analysis focuses on the Five-Factor Model with Varimax Rotation and the Five-Factor EFA Model with Promax Rotation. The purpose of this step is to confirm whether the factors identified in our EFA accurately represent the underlying constructs and relationships among the observed variables. CFA tests the hypothesis that the relationships between the observed variables and their latent factors hold true in a separate sample. By assessing the model's fit, we can ensure its robustness, thereby providing greater confidence in the generalizability of our findings.
+
+```{r}
+
+# Define the CFA model for Five-Factor Model with Varimax Rotation
+model_five_varimax <- "
+  MR1 =~ Q6D + Q6E + Q6F + Q6N
+  MR2 =~ Q6J
+  MR3 =~ Q6G + Q6H
+  MR4 =~ Q6I
+  MR5 =~ Q6K + Q6L + Q6M
+"
+
+# Fit the CFA model
+fit_five_varimax <- lavaan::cfa(model_five_varimax, data = test_data, std.lv = TRUE)
+
+# Model Summary
+summary(fit_five_varimax, fit.measures = T, standardized = T)
+
+# Visualizing the Model
+semPaths(fit_five_varimax, title = FALSE, rotation = 4, mar = c(2, 2, 2, 2))
+title("Five-Factor Model with Varimax Rotation")
+
+fit.index = c("chisq", "df", "pvalue", "cfi", "tli", "rmsea", "srmr","gfi") # Name Fit Measures
+
+# Show condensed Fit
+fitMeasures(fit_five_varimax, fit.index)
+
+```
+#### Five-Factor Model with Varimax Rotation
+The CFA for the Five-Factor Model yielded a chi-square statistic of 225.774 with 36 degrees of freedom, resulting in a significant p-value of 0.000. This suggests that while the model does not perfectly fit the data, it is essential to note that the chi-square statistic is highly sensitive to sample size. Therefore, we considered additional fit indices for a more nuanced evaluation.
+
+The Comparative Fit Index (CFI) was 0.950, indicating a good fit, as values above 0.95 generally indicate a strong model fit. The Tucker-Lewis Index (TLI) was 0.923, suggesting an acceptable fit but falling slightly short of the ideal threshold of 0.95. The Root Mean Square Error of Approximation (RMSEA) was 0.079, with an upper confidence interval reaching 0.088, indicating an acceptable but not excellent fit. Lastly, the Goodness-of-Fit Index (GFI) was 0.951, further supporting the model's reasonably good representation of the underlying factor structure. Overall, the strong values for CFI, SRMR, and GFI demonstrate that this model effectively captures the factors in the data. However, the RMSEA and TLI suggest minor room for improvement.
+
+```{r}
+############# Five-Factor Model with Promax Rotation ############# 
+
+# Define the CFA model for Five-Factor Model with Promax Rotation
+model_five_promax <- "
+  MR1 =~ Q6D + Q6E + Q6F + Q6N
+  MR2 =~ Q6J + Q6L + Q6I
+  MR3 =~ Q6G + Q6H
+  MR4 =~ Q6B + Q6C + Q6A
+  MR5 =~ Q6M + Q6K
+"
+
+# Fit the CFA model
+fit_five_promax <- lavaan::cfa(model_five_promax, data = test_data, std.lv = TRUE)
+
+# Model Summary
+summary(fit_five_promax, fit.measures = T, standardized = T)
+
+# Visualizing the Model
+semPaths(fit_five_promax,, title = FALSE, rotation = 4, mar = c(2, 2, 2, 2))
+title("Five-Factor Model with Promax Rotation")
+
+# Show condensed Fit
+fitMeasures(fit_five_promax, fit.index)
+```
+
+#### Five-Factor Model with Promax Rotation
+For the Five-Factor Model with Promax Rotation, we found a chi-square statistic of 301.971 with 67 degrees of freedom, yielding a significant p-value of 0.000. The CFI was 0.948, indicating a good fit, while the TLI was 0.923, suggesting an acceptable fit. The RMSEA was consistent at 0.065, implying an acceptable fit. The GFI for this model was 0.951, reinforcing that this model adequately represents the underlying factor structure as well. Similar to the Five-Factor Model with Varimax Rotation, these results indicate that while the model is robust, minor room remains for enhancement.
+
+#### Model Modifications
+We further examined our models by obtaining modification indices for both five-factor models, which helped identify potential improvements.
+
+```{r}
+# Get modification indices for the Five-Factor Model with Varimax Rotation
+modificationIndices(fit_five_varimax,  minimum.value = 10, sort = TRUE)
+
+
+# Get modification indices for the Five-Factor Model with Promax Rotation
+modificationIndices(fit_five_promax, minimum.value = 10, sort = TRUE)
+```
+
+
+- Varimax Rotation: The modification indices suggested adding a covariance between Parking Facilities (Q6J) and Shuttle to Long-Term Parking (Q6L).
+- Promax Rotation: The modification indices indicated the need to add covariances between Shuttle Parking (Q6L) and Roadway Signs (Q6I), as well as between Parking (Q6J) and Shuttle Parking (Q6L).
+
+```{r}
+
+# Update the CFA model for Five-Factor Model with Varimax Rotation
+mod_model_five_varimax <- "
+  MR1 =~ Q6D + Q6E + Q6F + Q6N
+  MR2 =~ Q6J + Q6L
+  MR3 =~ Q6G + Q6H
+  MR4 =~ Q6I
+  MR5 =~ Q6K + Q6M
+  Q6J ~~ Q6L
+"
+
+# Fit the CFA model
+fit_five_varimax_mod <- lavaan::cfa(mod_model_five_varimax, data = test_data, std.lv = TRUE)
+
+# Model Summary
+summary(fit_five_varimax_mod, fit.measures = T, standardized = T)
+
+# Visualizing the Model
+semPaths(fit_five_varimax_mod, title = FALSE, rotation = 4, mar = c(2, 2, 2, 2))
+title("Five-Factor Model with Varimax Rotation")
+
+fit.index = c("chisq", "df", "pvalue", "cfi", "tli", "rmsea", "srmr","gfi") # Name Fit Measures
+
+# Show condensed Fit
+fitMeasures(fit_five_varimax_mod, fit.index)
+
+############# Five-Factor Model with Promax Rotation ############# 
+
+# Update the CFA model for Five-Factor Model with Promax Rotation
+mod_model_five_promax <- "
+  MR1 =~ Q6D + Q6E + Q6F + Q6N
+  MR2 =~ Q6J + Q6L + Q6I
+  MR3 =~ Q6G + Q6H
+  MR4 =~ Q6B + Q6C + Q6A
+  MR5 =~ Q6M + Q6K
+  Q6L ~~ Q6I
+  Q6J ~~ Q6L
+"
+
+# Fit the CFA model
+fit_five_promax_mod <- lavaan::cfa(mod_model_five_promax, data = test_data, std.lv = TRUE)
+
+# Model Summary
+summary(fit_five_promax_mod, fit.measures = T, standardized = T)
+
+# Visualizing the Model
+semPaths(fit_five_promax_mod, labels = factor_descriptions, title = FALSE, rotation = 4, mar = c(2, 2, 2, 2))
+title("Four-Factor Model with Promax Rotation")
+
+# Show condensed Fit
+fitMeasures(fit_five_promax_mod, fit.index)
+
+
+
+
+
+```
+
+#### Updated Models
+
+#### Five-Factor Model with Varimax Rotation
+After updating the Five-Factor Model with Varimax Rotation to include the covariance (Q6J ~~ Q6L), we fitted the updated model, resulting in significantly improved fit indices. The chi-square statistic was 113.837 with 34 degrees of freedom, yielding a significant p-value of 0.000 due to the large sample size. The comparative fit index (CFI) was 0.979, indicating a very good fit, while the Tucker-Lewis index (TLI) was 0.966, suggesting a good fit. Additionally, the standardized root mean square residual (SRMR) was 0.027, and the goodness-of-fit index (GFI) was 0.976, supporting the model's strong fit to the data.
+
+#### Five-Factor Model with Promax Rotation
+After incorporating the covariances (Q6L ~~ Q6I and Q6J ~~ Q6L) into the Five-Factor Model with Promax Rotation, we fitted the updated model, which showed significantly improved fit indices. The chi-square statistic for this model was 213.772 with 65 degrees of freedom, again yielding a significant p-value of 0.000. The CFI was 0.967, indicating a very good fit, and the TLI was 0.954, suggesting a good fit. The root mean square error of approximation (RMSEA) was 0.052, indicating an acceptable fit. The GFI for this model was 0.964, further supporting its strong fit to the data.
+
+#### Summary
+Overall, the updated CFA models for the Five-Factor Model with Varimax Rotation and the Five-Factor Model with Promax Rotation demonstrated improved fit indices, suggesting that the modifications made were appropriate and enhanced the models' representation of the underlying data. Notably, the Five-Factor Model with Varimax Rotation exhibited better fit characteristics, indicating that this structure more effectively captures the underlying data patterns and provides a more robust understanding of the latent constructs at play.
+
+# Factor Scores from Confirmatory Factor Analysis
+After successfully completing our Confirmatory Factor Analysis (CFA), we obtained factor scores for the Five-Factor Model with Varimax Rotation. Factor scores serve as quantitative representations of the underlying latent variables for each observation in our dataset. Essentially, these scores indicate how each participant scores on the identified factors derived from the CFA, providing valuable insights into the relationships among observed variables.
+
+Using factor scores enables us to explore further assumptions related to demographic variables included in the survey, such as age, gender, and household income. By examining these scores in relation to demographic characteristics, we can uncover patterns and relationships that may inform our understanding of passenger satisfaction. This section outlines three specific analyses conducted using the factor scores: a t-test comparing factor scores across income groups, a one-way ANOVA analyzing the differences in factor scores based on gender, and a two-way ANOVA investigating the interaction effects of gender and age group on the factor scores. These analyses will help clarify how demographic factors influence perceptions of service quality and facilities, enhancing our findings.
+
+```{r}
+
+# Obtain factor scores from the Five-Factor Model with Varimax Rotation
+predFacScores <- data.frame(lavPredict(fit_five_varimax_mod))
+
+# Preview the factor scores
+round(head(predFacScores),3)
+
+```
+
+We utilized the lavPredict() function from the lavaan package in R to compute the factor scores for the updated model, reflecting the modifications made based on the modification indices. The resulting factor scores provide insights into how each observation relates to the identified factors. For example, the first observation has relatively high scores on MR1 (Navigating Inside) and MR3 (information Booths) but a negative score on MR4 (Navigating Outside) and a slightly negative score on MR5 (Airport and Rental Services). This suggests that this observation is strongly associated with the factors represented by MR1 and MR3 but less so with MR4 and MR5. 
+
+In contrast, the fourth observation has negative scores on all factors, especially MR2 (Parking and Shuttles) and MR3, indicating a weaker association with these identified factors and potentially representing an outlier or a very different pattern in terms of how it loads on these factors. Overall, the factor scores reflect how each observation aligns with the factors derived from the revised model, capturing more accurate associations based on the improvements suggested by the modification indices.
+
+#### Integrating Demographic Data with Factor Scores
+Our next analysis will integrate customer demographic data with the factor scores generated from our updated factor model. The goal is to leverage both sets of information—demographics and factor scores—to understand data patterns better.
+
+We selected specific demographic columns from the dataset for further analysis: age (Q17), gender (Q18), and household income (Q19). These demographic variables help us understand how different groups of customers relate to the identified factors from our Confirmatory Factor Analysis (CFA). To verify our selection, we displayed the first few rows of the chosen columns, ensuring that we captured the relevant demographic data accurately.
+
+```{r}
+
+# Select specific demographic columns
+customer_demographics <- dat[, c("Q17", "Q18", "Q19")]
+
+# Display the rows
+head(customer_demographics)
+
+# Set a seed for reproducibility
+set.seed(1842)
+
+# Create a vector of row indices and randomly sample 70% for the training set
+train_indices <- sample(1:nrow(customer_demographics), size = 0.7 * nrow(customer_demographics))
+
+# Create the training and test sets
+demo_train_data <- customer_demographics[train_indices, ]
+demo_test_data <- customer_demographics[-train_indices, ]
+
+# Verify the split
+# head(demo_train_data)
+# head(demo_test_data)
+# nrow(demo_train_data)  # Number of rows in training data
+# nrow(demo_test_data)   # Number of rows in test data
+
+# Merge test set with factor scores
+dat_with_scores <- cbind(demo_test_data[1:nrow(predFacScores), ], predFacScores)
+
+# Verify the merge
+head(dat_with_scores)
+
+```
+
+Next, we set a seed value to guarantee the reproducibility of our random sampling process. We created a vector of row indices and randomly sampled 70% of the dataset for the training set, reserving the remaining 30% for the test set. This split resulted in 2,263 rows in the training set and 971 rows in the test set, which we confirmed.
+
+This structured dataset enables us to explore the relationships between customer demographics and their respective factor scores. Analyzing these connections could reveal valuable insights into how different demographic groups perceive and evaluate various aspects of airport services, ultimately enhancing our understanding of passenger satisfaction.
+
+#### Income Groups
+
+We started by analyzing the relationship between income levels and the factor scores obtained from our Confirmatory Factor Analysis (CFA). Specifically, we wanted to determine if there are significant differences in the factor scores between high (income over $50,000) and low (income below $50,000) income groups. To accomplish this, we formulated the following hypotheses:
+
+- H0: There is no significant difference in the factor scores between high and low-income groups.
+- H1: There is a significant difference in the factor scores between high and low-income groups.
+
+Mathematically, we can express these hypotheses as: 
+
+- $H_0: \mu_{low}=\mu_{high} \text{ vs.  } H_1: \mu_{low} \ne \mu_{high}$
+
+To facilitate our analysis, we collapsed the income variable into categories: high, low, and other. We then conducted a Welch Two-Sample t-test to compare the factor scores between the high and low-income groups for each factor.
+```{r}
+
+# Collapse income into categories (high, low. other)
+dat_with_scores$income_cat <- factor(ifelse(dat_with_scores$Q19 == 1, "Low", ifelse(dat_with_scores$Q19 %in% c(2, 3, 4), "High", "Other (unspecified)")), levels = c("Low", "High", "Other (unspecified)"))
+
+# Perform t-test for the first factor
+t_test_MR1 <- t.test(dat_with_scores$MR1 ~ dat_with_scores$income_cat)
+
+# View the t-test result
+t_test_MR1
+
+```
+The t-test results for the first factor, MR1, yielded a p-value of 0.382. This value is greater than our significance level of 0.05, leading us to fail to reject the null hypothesis. This outcome indicates that there is insufficient evidence to support a significant difference in MR1 scores between the high and low-income groups.
+
+We extended this analysis to factors MR2 through MR5, performing t-tests for each. Similar to MR1, the results revealed no statistically significant differences between the two income groups across these factors. Thus, we can interpret these findings to suggest that whether a respondent belongs to the high or low-income group, their satisfaction and perceptions related to navigation (inside or outside), parking and shuttles, information booths, and AirTrain and rental services are statistically similar.
+
+#### Age Groups
+
+Next, we examined the relationship between age groups and the factor scores. Specifically, we wanted to determine if there are significant differences in the factor scores across different age groups. To achieve this, we formulated the following hypotheses:
+
+- H0: There are no significant differences in factor scores across different age groups.
+- H1: There are significant differences in factor scores across different age groups.
+
+Mathematically, we can express these hypotheses as 
+
+- $H_0: \mu_{\text{Under 18}} = \mu_{18–24} = \mu_{25–34} = \mu_{35–44} = \mu_{45–54} = \mu_{55–64} = \mu_{\text{65 and over}} = \mu_{\text{Don’t know/Refused}}$
+vs. $H_1: \mu_{\text{Under 18}} \ne \mu_{18–24} \ne \mu_{25–34} \ne \mu_{35–44} \ne \mu_{45–54} \ne \mu_{55–64} \ne \mu_{\text{65 and over}} \ne \mu_{\text{Don’t know/Refused}}$
+
+We first created a new variable representing the different age groups to conduct this analysis. Subsequently, we performed a one-way ANOVA to compare the factor scores across these age groups for the first factor (MR1).
+```{r}
+
+# Create a new variable for age groups
+dat_with_scores$age_group <- factor(dat_with_scores$Q17, levels = c(1, 2, 3, 4, 5, 6, 7, 8), labels = c("Under 18", "18–24", "25–34", "35–44", "45–54", "55–64", "65 and over", "Don’t know/Refused"))
+
+# Remove rows with missing values from the dataset
+# dat_with_scores <- na.omit(dat_with_scores)
+
+# Perform one-way ANOVA for the first factor
+anova_MR1 <- aov(MR1 ~ age_group, data = dat_with_scores)
+
+
+# View the ANOVA result
+summary(anova_MR1)
+
+```
+The results of the one-way ANOVA for MR1 yielded a p-value of 0.215, which exceeds our significance level of 0.05. Consequently, we fail to reject the null hypothesis, indicating that age groups do not have a significant effect on MR1 scores.
+
+We extended this analysis to factors MR2 through MR5, conducting additional one-way ANOVA tests. The results consistently revealed no statistically significant differences among the age groups across these factors. This further supports the conclusion that age does not significantly influence factor scores. Thus, we can interpret these findings to mean that a respondent's age does not significantly affect their perceptions of navigation (inside or outside), parking and shuttles, information booths, and AirTrain and rental services.
+
+#### Age and Gender Interaction
+
+In our final analysis, we wanted to analyze the relationship between age groups, gender, and their interaction in relation to the factor scores obtained. Specifically, we wanted to determine whether there are significant differences in the factor scores based on age group, gender, or their interaction. To facilitate this analysis, we formulated the following hypotheses:
+
+- H0: There are no significant differences in factor scores based on age group, gender, or their interaction (all means are equal).
+- H1: There are significant differences in factor scores based on age group, gender, or their interaction (at least one mean is different).
+
+Mathematically, we can express these hypotheses as
+
+- Age: $H_0: \mu_{\text{Under 18}} = \mu_{18–24} = \mu_{25–34} = \mu_{35–44} = \mu_{45–54} = \mu_{55–64} = \mu_{\text{65 and over}} = \mu_{\text{Don’t know/Refused}}$
+vs, $H_1: \mu_{\text{Under 18}} \ne \mu_{18–24} \ne \mu_{25–34} \ne \mu_{35–44} \ne \mu_{45–54} \ne \mu_{55–64} \ne \mu_{\text{65 and over}} \ne \mu_{\text{Don’t know/Refused}}$
+- Gender: $H_0: \mu_{low}=\mu_{high} \text{  vs.  } H_1: \mu_{low} \ne \mu_{high}$
+- Interaction:$H_{0\text{,interaction}} \text{  vs  } H_{1\text{,interaction}}$
+
+We began by creating a new variable categorizing respondents into gender groups and performed a two-way ANOVA to compare the factor scores based on age group, gender, and their interaction for the first factor (MR1).
+
+```{r}
+
+# Create a new variable for gender groups
+dat_with_scores$gender <- factor(dat_with_scores$Q18, levels = c(1, 2), labels = c("Male", "Female")) 
+
+# Remove any rows with NA values
+dat_with_scores_filtered <- na.omit(dat_with_scores[, c("MR1", "MR2", "MR3", "MR4", "MR5", "age_group", "gender")])
+
+# Perform Two-Way ANOVA
+anova_MR1 <- aov(MR1 ~ age_group * gender, data = dat_with_scores_filtered)
+
+# View the summary of the ANOVA
+summary(anova_MR1)
+
+
+```
+
+The results of the two-way ANOVA test showed the p-values for the factors in MR1 were 0.166 for the age group, 0.685 for gender, and 0.620 for the interaction between age and gender, all of which are greater than the significance level (alpha = 0.05). Therefore, we fail to reject the null hypothesis, indicating that these factors do not significantly affect MR1 scores.
+
+We also conducted additional two-way ANOVA tests for MR2 through MR5. These tests similarly revealed no statistically significant differences across age, gender, or their interaction. This supports our conclusion that age, gender, and their interaction do not appear to significantly influence navigation (inside or outside), parking and shuttles, information booths, and AirTrain and rental services.
+
+# Sentiment Analysis
+In exploring customer feedback regarding airport services, we conducted a comprehensive sentiment analysis to uncover insights into traveler sentiments. We constructed a new data frame incorporating key columns such as respondent identifiers, quantitative satisfaction ratings, qualitative text responses, and relevant demographic information. 
+
+The selected columns are:
+
+- RESPNum: Respondent number, allowing us to track individual responses.
+- Q6A to Q6N: Questions related to various airport features, capturing quantitative ratings of customer satisfaction.
+- SAQ: Administration of the survey, providing context about how the data was collected.
+- Q7_text_All: Predetermined text responses that offer qualitative feedback, critical for understanding sentiment nuances.
+- Demographic Information (Q17, Q18, Q19): Age group, gender, and income level.
+
+```{r}
+# Creating new df with columns needed for sentiment analysis
+dat2 <- dat[, c("RESPNUM", "Q6A", "Q6B", "Q6C", "Q6D", "Q6E", "Q6F",  
+  "Q6G", "Q6H", "Q6I", "Q6J", "Q6K", "Q6L", "Q6M", "Q6N", "SAQ", "Q7_text_All", 
+  "Q17", "Q18", "Q19")]
+head(dat2)
+```
+
+To perform sentiment analysis on customer feedback, we first examined the structure of the relevant text data in the Q7_text_All column, which contains responses from survey participants. Using the str function, we confirmed that this column consists of character data with 3,234 entries.
+
+To ensure the accuracy of our sentiment analysis, we took several steps to clean the text data. We identified and addressed any empty strings within the Q7_text_All column by replacing them with NA values. Additionally, we trimmed any leading or trailing whitespace to maintain consistency. Finally, we filtered out rows containing NA values in the Q7_text_All column, ensuring our analysis was based solely on text responses.
+
+```{r}
+
+# Check the structure of the dataset
+str(dat2$Q7_text_All)
+
+# Check dimensions
+# dim(dat$Q7_text_All)
+
+head(dat2$Q7_text_All, 10)
+
+# Replace empty strings in Q7_text_All with NA
+dat2 <- dat2 %>%
+  mutate(Q7_text_All = ifelse(Q7_text_All == "", NA, Q7_text_All), 
+         Q7_text_All = trimws(Q7_text_All))
+
+# Filter out NA for accuracy
+dat2 <- dat2 %>%
+  filter(!is.na(Q7_text_All))
+
+
+```
+
+#### Sentiment Distribution
+After preparing the dataset, we computed the average sentiment score for each text response using the sentiment_by function. This function analyzes the sentiment of each sentence within the text. It calculates an overall sentiment score for each response, providing a quantitative measure of sentiment.
+
+Next, we visualized the distribution of sentiment scores using the ggplot2 package. This plot allows us to see the spread of sentiment across all responses. Additionally, we generated a summary of the sentiment scores, which helps us better understand the distribution and central tendencies, such as the mean, median, and any potential outliers.
+
+
+```{r}
+
+# Compute single (average) sentiment score without NA's
+single_sentiment_score <- sentiment_by(get_sentences(dat2$Q7_text_All))
+round(single_sentiment_score, 5)
+
+# Plot the distribution of sentiment scores
+ggplot(single_sentiment_score, aes(x = ave_sentiment)) +
+geom_histogram(fill = "lightgrey", color = "black") +
+  scale_x_continuous(breaks = seq(-1.5, 1.7, by = 0.5)) +
+  labs(title = "Distribution of Sentiment Scores",
+       x ="Sentiment Score", 
+       y ="Frequency") +
+  theme_minimal()
+
+summary(single_sentiment_score)
+
+```
+We observed that the distribution of sentiment scores appears slightly right-skewed, indicating a prevalence of more positive sentiment scores. The center of the distribution is around 0.05, suggesting that most reviews are neutral or slightly positive. The median sentiment score is 0.07, while the mean is 0.10, further reinforcing the slight positive skew in the data. The overall distribution ranges from -1.28 to 1.68, with most sentiment scores falling between -0.05 and 0.05. This indicates that while most reviews are close to neutral, there is a tendency toward slight positivity overall.
+
+#### Survey Administration
+We aimed to determine whether the method of survey administration could influence the sentiment expressed in customer feedback. Specifically, we examined three modes of survey delivery: interviewer-administered (1), self-administered (2), and unknown administration method (0). The way these surveys are administered might affect sentiment scores, as the presence of an interviewer or the lack of direct interaction in a self-administered survey could influence how respondents express their opinions, potentially introducing bias or shaping the overall tone of their responses.
+
+```{r}
+# Combine data into a new data frame
+combined_data <- data.frame(
+     element_id = single_sentiment_score$element_id,
+     word_count = single_sentiment_score$word_count,
+     sd = NA,  
+     ave_sentiment = round(single_sentiment_score$ave_sentiment,5),
+     admin = dat2$SAQ
+   )
+combined_data
+
+summary_by_survey <- combined_data %>%
+     group_by(admin) %>%
+     summarise(
+       mean_sentiment = round(mean(ave_sentiment, na.rm = TRUE),4),
+       median_sentiment = round(median(ave_sentiment, na.rm = TRUE),4)
+     )
+summary_by_survey
+```
+
+We combined the sentiment scores with the survey administration type into a new dataframe and summarized the sentiment scores by administration type to observe any differences. For interviewer-administered surveys, the mean sentiment score was 0.0938, with a median of 0.0632. In contrast, self-administered surveys showed a slightly higher mean sentiment score of 0.1057 and a median of 0.0866. Both groups exhibited marginally positive sentiment on average, with self-administered responses being slightly more positive. The minimal differences between the mean and median sentiment scores across these groups suggest that the method of survey administration does not significantly impact the sentiment of the comments.
+
+To further investigate the relationship between survey administration method and sentiment, we created binary variables for both administration type and sentiment.
+
+```{r}
+
+# Create binary variables for SAQ and sentiment
+# 1 for interviewer-administered and 0 for self-administered.
+combined_data$admin_binary <- ifelse(combined_data$admin == 1, 1, 
+  ifelse(combined_data$admin == 2, 0, NA)) 
+
+# 1 for positive sentiment and 0 for negative sentiment.
+combined_data$sentiment_binary <- ifelse(combined_data$ave_sentiment > 0, 1, 0)
+
+# Generate and print the confusion matrix
+confusion_matrix <- confusionMatrix(
+     factor(combined_data$sentiment_binary),
+     factor(combined_data$admin_binary)
+   )
+confusion_matrix
+
+# Calculate the correlation between average sentiment and recommendation
+cor(combined_data$sentiment_binary, combined_data$admin_binary, use = "complete.obs")
+
+
+```
+
+We then printed the confusion matrix to evaluate the model’s performance. The matrix revealed a model accuracy of 0.4843, indicating low performance, no better than random guessing. Additionally, the correlation coefficient of -0.0105 suggested an almost negligible relationship between survey administration method and sentiment.
+
+#### Income and Sentiment Scores
+
+Our next objective was to evaluate if there are significant differences in the mean sentiment scores between the "Low" and "High" income groups based on sentiment. To achieve this, we formulated the following hypotheses
+
+- H0: There is no significant difference in the mean sentiment scores between the "Low" and "High" income groups.
+- H1: There is a significant difference in the mean sentiment scores between the "Low" and "High" income groups.
+
+Mathematically, we can express these hypotheses as 
+
+- $H_0: \mu_{low}=\mu_{high} \text{ vs.  } H_1: \mu_{low} \ne \mu_{high}$
+
+
+```{r}
+
+# Collapse income into two categories (high and low)
+dat2$income_cat <- factor(ifelse(dat2$Q19 == 1, "Low", ifelse(dat2$Q19 %in% c(2, 3, 4), "High", "Other (unspecified)")), levels = c("Low", "High", "Other (unspecified)"))
+
+# Filter the dataset to responses that match element IDs in single_sentiment_score
+dat_filtered <- dat2 %>% filter(RESPNUM %in% single_sentiment_score$element_id)
+
+# Combine the filtered data with sentiment scores
+combined_data <- cbind(dat_filtered[1:nrow(single_sentiment_score), ], single_sentiment_score)
+
+# Combine data into a new data frame using RESPNUM as the identifier
+combined_data <- data.frame( 
+  element_id = combined_data$RESPNUM,
+  word_count = combined_data$word_count, 
+  ave_sentiment = round(combined_data$ave_sentiment, 5), 
+  survey_responses = combined_data$SAQ, 
+  income_cat = combined_data$income_cat )
+combined_data
+
+
+# Perform t-test for the first factor
+t_test_income <- t.test(combined_data$ave_sentiment ~ combined_data$income_cat)
+
+# View the t-test result
+t_test_income
+
+```
+
+We collapsed the income variable into two categories: "Low" and "High." After filtering the dataset to include only responses matching element IDs in the single_sentiment_score dataframe, we created a new dataframe using RESPNUM as the identifier, which included the sentiment scores and corresponding income categories.
+
+To compare the sentiment scores between the two income groups, we performed a Welch Two-Sample t-test. The test produced a p-value of 0.06328, which is greater than the significance level (alpha = 0.05). Therefore, we fail to reject the null hypothesis, indicating no significant difference in the mean sentiment scores between the "Low" and "High" income groups. This suggests that income level does not significantly influence the sentiment expressed in the comments.
+
+#### Age Group and Sentiment
+
+Following this, we aimed to examine if there are significant differences in the mean sentiment scores among different age groups. To achieve this, we formulated the following hypotheses:
+
+- H0: There is no significant difference in the mean sentiment scores between the different age groups.
+- H1: There is a significant difference in the mean sentiment scores between at least two of the age groups.
+
+Mathematically, we can express these hypotheses as
+
+- $H_0: \mu_{\text{Under 18}} = \mu_{18–24} = \mu_{25–34} = \mu_{35–44} = \mu_{45–54} = \mu_{55–64} = \mu_{\text{65 and over}} = \mu_{\text{Don’t know/Refused}}$
+vs. $H_1: \mu_{\text{Under 18}} \ne \mu_{18–24} \ne \mu_{25–34} \ne \mu_{35–44} \ne \mu_{45–54} \ne \mu_{55–64} \ne \mu_{\text{65 and over}} \ne \mu_{\text{Don’t know/Refused}}$
+
+```{r}
+
+# Create a new variable for age groups based on Q17
+dat2$age_group <- factor(dat2$Q17, levels = c(1, 2, 3, 4, 5, 6, 7, 8), labels = c("Under 18", "18–24", "25–34", "35–44", "45–54", "55–64", "65 and over", "Don’t know/Refused"))
+
+# If the row shows NA change to not specified 
+dat2$age_group[is.na(dat2$age_group)] <- "Don’t know/Refused"
+
+# Filter the dataset to responses that match element IDs in single_sentiment_score
+dat_filtered <- dat2 %>% filter(RESPNUM %in% single_sentiment_score$element_id)
+
+# Combine the filtered data with sentiment scores
+combined_data <- cbind(dat_filtered[1:nrow(single_sentiment_score), ], single_sentiment_score)
+
+# Combine data into a new data frame using RESPNUM as the identifier
+combined_data <- data.frame( 
+  element_id = combined_data$RESPNUM, 
+  word_count = combined_data$word_count, 
+  ave_sentiment = round(combined_data$ave_sentiment, 5), 
+  survey_responses = combined_data$SAQ, 
+  income_cat = combined_data$income_cat,
+  age_group = combined_data$age_group)
+combined_data
+
+
+# Perform one-way ANOVA
+anova_age <- aov(ave_sentiment ~ age_group, data = combined_data)
+
+# View the ANOVA result
+summary(anova_age)
+```
+We created a new variable for age groups, ensuring that we handled NA values by recoding them to "Don’t know/Refused." We then filtered the dataset to include only responses that matched the element IDs in the single_sentiment_score dataframe, which included the sentiment scores, income categories, and age groups.
+
+To analyze the differences in sentiment scores, we performed a one-way ANOVA. The results yielded a p-value of 0.00325, which is less than the significance level (alpha = 0.05). Consequently, we reject the null hypothesis, indicating that there is a significant difference in the mean sentiment scores among the different age groups. This suggests that age group significantly influences the sentiment expressed in the comments.
+
+#### Age and Gender Interaction
+
+Lastly, we aimed to determine if there are significant differences in the mean sentiment scores based on age groups, gender, and their interaction. To achieve this, we formulated the following hypotheses:
+
+- H0: There are no significant differences in sentiment scores based on age group, gender, or their interaction (all means are equal).
+- H1: There are significant differences in sentiment scores based on age group, gender, or their interaction (at least one mean is different).
+
+Mathematically, we can express these hypotheses as
+
+- Age: $H_0: \mu_{\text{Under 18}} = \mu_{18–24} = \mu_{25–34} = \mu_{35–44} = \mu_{45–54} = \mu_{55–64} = \mu_{\text{65 and over}} = \mu_{\text{Don’t know/Refused}}$
+vs, $H_1: \mu_{\text{Under 18}} \ne \mu_{18–24} \ne \mu_{25–34} \ne \mu_{35–44} \ne \mu_{45–54} \ne \mu_{55–64} \ne \mu_{\text{65 and over}} \ne \mu_{\text{Don’t know/Refused}}$
+- Gender: $H_0: \mu_{low}=\mu_{high} \text{  vs.  } H_1: \mu_{low} \ne \mu_{high}$
+- Interaction:$H_{0\text{,interaction}} \text{  vs  } H_{1\text{,interaction}}$
+
+We began by creating a new variable for gender groups, then we filtered the dataset to include only responses that matched element IDs in the single_sentiment_score dataframe that included sentiment scores, income categories, age groups, and gender.
+
+```{r}
+
+# Create a new variable for gender groups
+dat2$gender <- factor(dat2$Q18, levels = c(1, 2), labels = c("Male", "Female")) 
+
+# Filter the dataset to responses that match element IDs in single_sentiment_score
+dat_filtered <- dat2 %>% filter(RESPNUM %in% single_sentiment_score$element_id)
+
+# Combine the filtered data with sentiment scores
+combined_data <- cbind(dat_filtered[1:nrow(single_sentiment_score), ], single_sentiment_score)
+
+# Combine data into a new data frame
+combined_data <- data.frame( 
+  element_id = combined_data$RESPNUM,
+  word_count = combined_data$word_count, 
+  ave_sentiment = round(combined_data$ave_sentiment, 5), 
+  survey_responses = combined_data$SAQ, 
+  income_cat = combined_data$income_cat,
+  age_group = combined_data$age_group,
+  gender = combined_data$gender)
+combined_data
+
+# Perform Two-Way ANOVA
+anova_interaction <- aov(ave_sentiment ~ age_group * gender, data = combined_data)
+
+# View the summary of the ANOVA
+summary(anova_interaction)
+
+```
+
+To assess the differences, we performed a two-way ANOVA. The results yielded the following p-values: for age group (0.00525) and gender (0.00268), both of which are less than the significance level (alpha = 0.05). Therefore, we reject the null hypothesis, indicating significant differences in the mean sentiment scores between different age groups and genders. However, the p-value for the interaction between age and gender (0.23301) is greater than the significance level, leading us to fail to reject the null hypothesis for the interaction. This indicates that there is no significant interaction effect between age group and gender on the mean sentiment scores.
+
+
+
+# Conclusion: Summary of Findings and Implications
+The analysis conducted on passenger survey data provided valuable insights into the perceptions and sentiments of travelers regarding various airport services. Through Confirmatory Factor Analysis (CFA), we identified distinct factors that influence passenger experiences while examining the impact of demographic variables on these perceptions. Additionally, our sentiment analysis revealed nuanced patterns in how different groups express satisfaction or dissatisfaction with airport services. The following key findings synthesize the results from the CFA and sentiment analysis, highlighting the factors that significantly shape passenger experiences and uncovering potential areas for improvement in airport operations and customer service strategies.
+
+#### Key Findings:
+1. The Confirmatory Factor Analysis (CFA) identified five main factors:
+
+- MR1 (Navigating Inside): Associated with: Signs and directions inside SFO, escalators, elevators, moving walkways, information on screens and monitors, and SFO Airport as a whole.
+- MR2 (Parking and Shuttles): Associated with: Airport parking facilities and long-term parking lot shuttle.
+- MR3 (Information Booths): Associated with: Information booths on the lower level near baggage claim and the upper level departure area.
+- MR4 (Navigating Outside): Associated with: Signs and directions on SFO airport roadways.
+- MR5 (AirTrain and Rental Services): Associated with: AirTrain and airport rental car center.
+
+2. We saw insufficient evidence to suggest significant differences in MR1-MR5 factor scores between high and low-income groups. We also saw that Age groups did not significantly affect factor scores for MR1-MR5, indicating uniformity in perceptions across different age demographics, and neither gender nor the interaction between age and gender had a significant impact on MR1-MR5 scores.
+
+3. We saw interviewer-administered and self-administered surveys exhibited marginally positive sentiment. The sentiment analysis model exhibited low accuracy (0.4843), indicating it performed no better than random guessing, suggesting the need for improved sentiment classification methodologies. Income level did not significantly influence the sentiment expressed in comments, and there were significant differences in mean sentiment scores among different age groups, indicating that age influences how sentiment is expressed. While there were significant differences in sentiment scores between different age groups and genders, there was no significant interaction effect between age group and gender.
+
+#### Implications
+1. Identifying MR1 (Navigating Inside) and MR3 (Information Booths) as critical factors suggests that investments in signage, directions, and information services can enhance passenger experiences. Improving these aspects could lead to better navigation within the airport and higher overall satisfaction.
+2. The lack of significant differences in factor scores across income levels, age groups, and gender suggests that airport services may need to adopt a universal approach to enhance passenger satisfaction. Service improvements should focus on general enhancements applicable to all demographic groups rather than targeting specific segments.
+3. The significant differences in mean sentiment scores among different age groups indicate that age may influence passenger perceptions, suggesting tailored engagement strategies and services may be necessary to cater to varying preferences and expectations across age demographics.
+4. The minimal impact of survey administration methods on sentiment scores suggests that airport resource allocation to one method over the other may be possible without sacrificing data quality.
+
+
+#### Recommendations
+
+1. Improve Signage and Directions: Enhance the clarity and visibility of signs and directions inside the airport and on roadways (related to MR1 and MR4). This will help passengers navigate more efficiently and reduce stress, improving overall satisfaction.
+2. Enhance Amenities: Upgrade and diversify offerings in restaurants and retail shops. Consider expanding or enhancing artwork and exhibitions to improve the overall passenger experience, creating a more pleasant and engaging environment.
+3. Optimize Parking and Transportation: Improve the efficiency and user-friendliness of airport parking facilities (related to MR2). Enhance shuttle services to the long-term parking lot and rental car center (related to MR5) to streamline transportation, making the airport more accessible and convenient for travelers.
+4. Boost Information Services: Make information booths more accessible and user-friendly (related to MR3). Improve the clarity and availability of information on screens and monitors (related to MR1) to help passengers find the information they need more easily, greatly enhancing the customer service experience at the airport.
+5. Tailored Communication and Services: Since age significantly influences sentiment, tailor communication and services to address the needs and preferences of different age groups. For example, provide more digital information for younger travelers and more in-person assistance for older travelers. Implement strategies that cater to the different needs and preferences of male and female travelers, ensuring that facilities and services are inclusive and address the unique concerns of each gender.
+6. Enhance User Experience in Areas of Negative Sentiment: Conduct further qualitative analysis of the lower sentiment scores to identify specific pain points. Prioritize improvements in these areas to enhance user satisfaction. 
+7. Training Staff on Customer Engagement: Provide staff training focusing on understanding and responding to the varying sentiments of different age groups and genders. This training should emphasize personalized communication techniques to enhance the passenger experience.
+8. Enhance Self-Administered Survey Options: Since self-administered surveys showed slightly higher sentiment scores, consider expanding self-service feedback options. Implement more kiosks or online platforms that allow passengers to provide feedback at their convenience, potentially increasing overall sentiment and response rates.
+9. Conduct Follow-Up Studies: Conduct qualitative follow-up studies (e.g., focus groups) to delve deeper into the sentiments expressed by different age groups and genders. Understanding the context behind their feelings can lead to more effective interventions and improvements.
+
+As the airport continues to evolve, fostering a culture of continuous improvement based on data-driven insights is essential. By implementing these recommendations, the airport can enhance the travel experience for all passengers, creating a more welcoming, efficient, and enjoyable environment. Engaging in ongoing dialogue with travelers and adapting to their changing needs will be key to sustaining high satisfaction levels and ensuring the airport remains a preferred choice for all who travel through it.
+
+
+
+
