@@ -1,5 +1,19 @@
+# Civic Dashboard Project
+This project involves designing an interactive dashboard using Shiny (R) to support the Mayor in understanding relationships within civic datasets. The dashboard visualizes key metrics and trends to provide actionable insights, enabling strategic planning and data-driven decision-making on critical city issues. [View Customer Satisfaction Analysis](https://github.com/cthr13en/Data-Science-Projects/tree/main/Customer%20Satisfaction%20Analysis). The finished visualization can be seen at https://cristianthirteen.shinyapps.io/Final_Cristian/
+
+## R Packages Used
+- `shiny`
+- `leaflet`
+- `ggplot2`
+- `dplyr`
+- `geosphere`
+- `sf`
+- `tidyr`
+- `shinydashboard`
+- `shinythemes`
+
 # Customer Satisfaction Analysis
-This project analyzes customer satisfaction survey data to gain insights into various aspects of the customer experience. The goal is to understand how customer satisfaction can be broken down into different attributes and how these attributes vary across demographic groups such as age, gender, and household income.. [View Customer Satisfaction Analysis](https://github.com/cthr13en/Data-Science-Projects/tree/main/Customer%20Satisfaction%20Analysis)
+This project analyzes customer satisfaction survey data to gain insights into various aspects of the customer experience. The goal is to understand how customer satisfaction can be broken down into different attributes and how these attributes vary across demographic groups such as age, gender, and household income. [View Customer Satisfaction Analysis](https://github.com/cthr13en/Data-Science-Projects/tree/main/Customer%20Satisfaction%20Analysis)
 
 ## R Packages Used
 - `tidyverse`
