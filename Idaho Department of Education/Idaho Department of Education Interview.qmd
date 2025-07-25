@@ -1,0 +1,210 @@
+---
+title: "Special Education Proficiency Trends: Idaho Schools (2014–2017)"
+subtitle: "Prepared for: Data and Reporting Coordinator Interview"
+author: "Cristian T"
+date: last-modified
+format: 
+   html:
+    title-block-banner: "#0C2340"
+    df-print: paged
+    embed-resources: true
+    editor: visual
+    highlight-style: "tango"
+    code-copy: true
+    code-overflow: wrap
+toc: true
+toc-location: left
+toc-title: "Table of Contents"
+toc-expand: 4
+code-block-bg: true
+code-block-border-left: "#C99700"
+editor:
+  markdown:
+    wrap: 80
+---
+
+## Idaho Department of Education
+We would like you to come prepared with a 10-minute presentation using the following information:
+
+Percent of Special Education Students Scoring at or above Proficient on Test.
+
+- What initial analyses would you run on this data?
+- What type of chart(s) might you use to visualize this data?
+- Are there any guiding principles of visualization you would use while creating your charts?
+- Did you notice anything about the data that is potentially concerning or requires further exploration?
+- What additional information, if any, would you like to have before producing a final analysis or visualization?
+ 
+Please come prepared to deliver your presentation professionally, as you would to constituents in the field. We will review both your presentation style and the content. Save your presentation on a thumb drive and bring it with you so we can connect you once you arrive. If you have any questions or need assistance for your presentation, let me know.
+ 
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+set.seed(1842)
+
+suppressMessages(library(tidyverse))
+suppressMessages(library(dplyr))
+suppressMessages(library(faraway))
+suppressMessages(library(stringr))
+suppressMessages(library(ggplot2))
+suppressMessages(library(doParallel))
+suppressMessages(library(skimr))
+suppressMessages(library(lubridate))
+suppressMessages(library(tidyr))
+
+students <- read.csv("/Users/cristian/Downloads/ND Data/Percent of Special Education Students Scoring.csv")
+colnames(students) <- c("School", "2014", "2016", "2017")
+
+```
+
+## Special Education Proficiency Trends
+
+The ISAT (Idaho Standards Achievement Test) assesses all students enrolled in an Idaho public school in grades 3-8 and 11. Students are evaluated on grade-level Idaho content standards in mathematics, English/Language Arts, and science (The science ISAT is only administered to students in grades 5, 8, and 11). The summative ISAT is administered to Idaho students in March through May each school year.
+
+In this dataset, we assume that “Proficient” refers to students who scored at or above Level 3 on the ISAT. These standardized tests classify student performance into four levels. Level 3 indicates proficiency (meaning the student has met grade-level expectations in the subject matter). The percentages shown represent the proportion of tested Special Education students at each school who reached or exceeded this benchmark in a given year. For example, if a school scores 22%, we interpret this as 22% of its Special Education students scored Proficient or Advanced that year.
+```{r}
+students
+summary(students)
+```
+
+The above table provides summary statistics for the percentage of Special Education students scoring at or above Proficient on standardized assessments across 10 Idaho schools in the years 2014, 2016, and 2017.
+
+Key Takeaway:
+There is a clear upward trend in average proficiency scores across the three years, increasing from 14.4% in 2014 to 17.4% in 2016 and then to 31.4% in 2017. Median scores also rose over time, indicating that improvement is not limited to just a few high-performing schools. However, the maximum value in 2017—90% from School H—is a significant outlier and may warrant further investigation to determine whether it reflects an exceptional result, a change in testing practices, or a possible data anomaly.
+
+### Proficiency Trends Visualization
+To better understand how proficiency rates have changed over time, the dataset was reshaped from a wide format (with separate columns for each year) to a long format, where each row represents a School-Year-Proficiency combination. Using this reshaped data, a line plot was created to visualize changes in the percentage of Special Education students scoring Proficient or Above.
+```{r}
+# plot proficiency trends 
+
+# Convert to long format for ggplot
+studentsLong <- pivot_longer(students, cols = c("2014", "2016", "2017"),
+                             names_to = "Year", values_to = "Proficiency")
+# write.csv(studentsLong, "students_long_format.csv", row.names = FALSE)
+
+# Plot Proficiency Trends
+ggplot(studentsLong, aes(x = Year, y = Proficiency, group = School, color = School)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 2) +
+  labs(
+    title = "Proficiency Trends by School (2014–2017)",
+    subtitle = "Percent of Special Education Students Scoring Proficient or Above",
+    x = "Year",
+    y = "Proficiency (%)",
+    color = "School"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    legend.position = "bottom",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    plot.title = element_text(face = "bold"),
+    axis.text.x = element_text(face = "bold"),
+    axis.text.y = element_text(face = "bold")
+  )
+
+```
+
+We see that each line represents a single school, showing how its proficiency rate has changed over the three years. Most schools show steady or modest improvements in proficiency over time, which is consistent with the increase in median and mean scores observed in the summary statistics. The plot helps identify which schools may be consistently improving, plateauing, or showing sudden changes worth examining more closely.
+
+Key Takeaway:
+This visualization provides a clear and intuitive view of year-over-year trends in student proficiency. It confirms the general upward trajectory across most schools while also highlighting School H's anomalous spike in 2017. This chart supports targeted follow-up by spotlighting schools that may either exemplify best practices or require data validation.
+
+
+```{r}
+# Plot Proficiency by School and Year
+ggplot(studentsLong, aes(x = School, y = Proficiency, fill = Year)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  coord_flip() +  # Horizontal bars to avoid angled labels
+  labs(
+    title = "Proficiency by School and Year",
+    subtitle = "Percent of Special Education Students Scoring Proficient or Above (2014–2017)",
+    x = "",
+    y = "Proficiency (%)",
+    fill = "Year"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.text.y = element_text(face = "bold"),
+    axis.text.x = element_text(face = "bold"),
+    plot.title = element_text(face = "bold")
+  )
+
+```
+A grouped bar chart was created to provide a side-by-side comparison of each school’s performance over time. This plot displays the percentage of Special Education students scoring at or above Proficient across the three years of data. Each group of three bars represents a single school, with each bar corresponding to a specific year. Similar to the previous plot, most schools demonstrate gradual improvement in proficiency between 2014 and 2017. School H again stands out, with a dramatic increase in 2017 to 90%, well beyond all other values, visually reinforcing its status as a potential outlier. Schools like C, D, and F show consistent growth year over year. A few schools, like E and B, exhibit less consistent patterns, with slight declines in 2016 before rebounding in 2017.
+
+Key Takeaway:
+This bar chart is particularly effective for communicating year-over-year comparisons at the school level. It clearly shows which schools are improving steadily and which ones may require further analysis. 
+
+### Adjusted Growth in Proficiency
+To better assess growth trends across schools without the distortion caused by the extreme outlier, we created a modified analysis of the change in proficiency rates from 2014 to 2017. Because we feel that School H’s reported proficiency in 2017 was an outlier, we replaced this value with the median 2017 proficiency score (25%) from the other nine schools. We created a new column, 2017_adj, to reflect this adjustment, and the growth from 2014 to 2017 was recalculated accordingly.
+
+```{r}
+# Plot Comparing growth between 2014 and 2017 with outlier removed
+# Compute the median of 2017 values excluding School H
+median2017 <- students %>%
+  filter(School != "School H") %>%
+  summarize(median2017 = median(`2017`)) %>%
+  pull(median2017)
+
+# Replace School H's 2017 value with the median
+students_adj <- students %>%
+  mutate(`2017_adj` = if_else(School == "School H", median2017, `2017`),
+         Growth = `2017_adj` - `2014`)
+
+# Plot the adjusted growth
+ggplot(students_adj, aes(x = reorder(School, Growth), y = Growth)) +
+  geom_col(fill = "#1F77B4") +
+  coord_flip() +
+  labs(
+    title = "Growth in Proficiency (2014–2017, Adjusted for School H Outlier)",
+    subtitle = "School H's 2017 value replaced with the group median (25%) for comparability",
+    x = "",
+    y = "Percentage Point Change"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.text.x = element_text(face = "bold"),
+    axis.text.y = element_text(face = "bold"),
+    plot.title = element_text(face = "bold"),
+    plot.subtitle = element_text(size = 10)
+  )
+```
+We created another plot showing a horizontal bar chart to show each school's adjusted percentage point change in proficiency. School C (+17 points) and School D (+14 points) show the largest adjusted growth, followed by School F (+12). School H's adjusted growth is +11 points, which aligns with realistic improvements shown by Schools I and J. The visualization now enables clearer, fairer comparisons of school-level improvement without being overwhelmed by an extreme outlier.
+
+Key Takeaway:
+By substituting School H’s outlier score with the group median, we better understand overall school performance growth trends. This adjustment improves visual clarity and equity in comparisons, making the plot more informative for decision-makers who are evaluating progress across schools.
+
+
+## Key Findings:
+
+- Overall improvement: The mean proficiency increased from 14.4% in 2014 to 31.4% in 2017, with a similar rise in the median, indicating broad-based progress across schools.
+- High-growth schools: Schools C, D, and F showed the most consistent and substantial improvement in proficiency (gains of +12 to +17 percentage points).
+- Outlier identified: School H recorded a dramatic jump from 17% in 2016 to 90% in 2017, marking it a statistical outlier. This value significantly skewed 2017 summary statistics and was adjusted to the median (25%) for a more reliable growth comparison.
+
+## Implications:
+
+- Encouraging Trends in Proficiency:  Most Idaho schools show upward trends in proficiency among Special Education students, suggesting improving academic outcomes.
+- Need for Contextual Interpretation: Percent-based proficiency scores, without context like enrollment size, test format, or instructional changes, can be misleading, especially in the presence of outliers (e.g., School H's anomalous 90% score in 2017).
+- Importance of Data Quality: Outlier detection and treatment improve fairness and accuracy in reporting. Addressing anomalies (like School H) is critical to avoid distorted comparisons.
+- Participation and Test Coverage: ISAT summative assessments are mandatory for students in grades 3–8 and 11, including those in Special Education, unless eligible for alternate assessments (e.g., IDAA).
+- Limitations in Score Interpretation: Small changes near cut scores may reflect measurement errors rather than actual performance shifts. The ISAT’s computer-adaptive nature yields higher precision near proficiency cut scores but reduced accuracy at ability extremes, especially for low-performing Special Education students. This limits the interpretability of minor score fluctuations and reinforces the need for contextual understanding when evaluating growth.
+
+## Recommendations:
+
+1. Validate anomalous data points: Investigate School H’s 2017 score of 90% to confirm whether it reflects a real performance gain or a reporting inconsistency. Review student counts, accessibility accommodations, test administration logs. instructional changes or student population shifts.
+2. Request contextual variables: Include student enrollment counts, Test versions and accommodations used. modality (online vs. paper), and demographic factors in future analyses to interpret percentage-based metrics better.
+3. Develop a standardized reporting dashboard: Build an internal dashboard to track proficiency trends, highlight year-over-year changes, and automatically flag statistical outliers.
+4. Engage with school leaders: Share findings with administrators from high-growth and anomalous schools to understand what interventions were implemented.
+5. Leverage Interim and Formative Data: Triangulate summative trends with ISAT Interim Assessments and Tools for Teachers data. Compare summative and interim outcomes to gauge instructional impact and use formative classroom data for ongoing progress monitoring.
+6. Report by Subgroup: Analyze performance by grade, disability category, and IEP status. Use disaggregated data to identify areas of strength or targeted need.
+
+## Equity and Interpretation
+While quantitative gains provide a useful summary of academic performance, it is critical to interpret trends within the broader context of equity. Special Education students may face structural barriers—such as inadequate access to accommodations, differentiated instruction, or support services—that affect assessment outcomes. Gains in proficiency should be evaluated in tandem with access to resources, inclusive instructional practices, and appropriate placement decisions.
+
+
+
