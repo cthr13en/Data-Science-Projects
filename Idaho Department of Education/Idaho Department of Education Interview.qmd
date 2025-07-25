@@ -1,7 +1,7 @@
 ---
 title: "Special Education Proficiency Trends: Idaho Schools (2014–2017)"
 subtitle: "Prepared for: Data and Reporting Coordinator Interview"
-author: "Cristian T"
+author: "Cristian"
 date: last-modified
 format: 
    html:
@@ -52,7 +52,7 @@ suppressMessages(library(skimr))
 suppressMessages(library(lubridate))
 suppressMessages(library(tidyr))
 
-students <- read.csv("/Users/cristian/Downloads/ND Data/Percent of Special Education Students Scoring.csv")
+students <- read.csv("Data/Percent of Special Education Students Scoring.csv")
 colnames(students) <- c("School", "2014", "2016", "2017")
 
 ```
