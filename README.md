@@ -1,3 +1,28 @@
+# ND Skills Assessment
+This project involves analyzing the trends in nonresident doctorate recipients at the University of Notre Dame compared to its peers in the Association of American Universities (AAU) private institutions. Using data from the Integrated Postsecondary Education Data System (IPEDS) from 2011–2013 and 2021–2023, this analysis focuses on the percentage of doctorates awarded to nonresident students, exploring growth patterns, institutional variations, and demographic distributions across different fields of study. The goal is to understand how Notre Dame has evolved in attracting international doctoral talent and how it compares to its peers within the AAU private research university cohort. [View ND Skills Assessment Analysis](https://github.com/cthr13en/Data-Science-Projects/tree/main/Assessment)
+
+## R Packages Used
+- `tidyverse`
+- `ggplot2`
+- `dplyr`
+- `plotly`
+- `janitor`
+- `stringr`
+- `viridis`
+
+
+# Idaho Department of Education
+This project involves analyzing the proficiency rates of Special Education students in Idaho, specifically focusing on the percentage of students scoring at or above Proficient on the Idaho Standards Achievement Test (ISAT). The goal is to examine proficiency trends over time (2014–2017) and identify key insights, including performance improvements, school-level variations, and potential data anomalies, such as outliers. The findings aim to support data-driven decisions and strategic planning for improving education outcomes. [View Idaho Department of Education Analysis](https://github.com/cthr13en/Data-Science-Projects/tree/main/Idaho%20Department%20of%20Education)
+
+## R Packages Used
+- `tidyverse`
+- `ggplot2`
+- `dplyr`
+- `lubridate`
+- `skimr`
+- `tidyr`
+
+
 # Civic Dashboard Project
 This project involves designing an interactive dashboard using Shiny (R) to support the Mayor in understanding relationships within civic datasets. The dashboard visualizes key metrics and trends to provide actionable insights, enabling strategic planning and data-driven decision-making on critical city issues. [View Civic Dashboard Project](https://github.com/cthr13en/Data-Science-Projects/tree/main/Civic_Dashboard_Project). The finished visualization can be seen at https://cristianthirteen.shinyapps.io/Final_Cristian/
 
