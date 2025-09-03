@@ -1,3 +1,25 @@
+# Alumni Network Map – Proof of Concept
+This project is a proof-of-concept Shiny application designed to help University alumni locate fellow alumni near specific locations, such as conferences or events. The app displays alumni on an interactive map, allows searches by city and state, filters results based on a selected radius, and provides a detailed alumni table including distance, email, and phone information. The goal is to facilitate networking and engagement among alumni at events. [View Alumni Network Map](https://github.com/cthr13en/Data-Science-Projects/tree/main/Assessment)
+
+## Key Features
+
+- Interactive Map: Displays alumni locations with popups containing name, city, state, phone, and email.
+- Search by City & State: Fuzzy matching helps find the closest city even if there are minor spelling variations.
+- Distance Filtering: Allows filtering alumni within a selectable radius (10, 25, 50, 100 miles) of the search location.
+- Alumni Table: Provides a sortable and searchable table of results including distance from the search location.
+- Dynamic Notifications: Alerts users when searches yield no results or when a search is successfully completed.
+- Scalable Data Collection: Integrates with Google Forms for opt-in alumni data collection, with potential for automated geocoding.
+
+## R Packages Used
+- `shiny`
+- `bslib`
+- `dplyr`
+- `leaflet`
+- `DT`
+- `stringdist`
+
+
+
 # ND Skills Assessment
 This project involves analyzing the trends in nonresident doctorate recipients at the University of Notre Dame compared to its peers in the Association of American Universities (AAU) private institutions. Using data from the Integrated Postsecondary Education Data System (IPEDS) from 2011–2013 and 2021–2023, this analysis focuses on the percentage of doctorates awarded to nonresident students, exploring growth patterns, institutional variations, and demographic distributions across different fields of study. The goal is to understand how Notre Dame has evolved in attracting international doctoral talent and how it compares to its peers within the AAU private research university cohort. [View ND Skills Assessment Analysis](https://github.com/cthr13en/Data-Science-Projects/tree/main/Assessment)
 
