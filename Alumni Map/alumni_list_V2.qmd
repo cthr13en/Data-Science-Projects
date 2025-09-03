@@ -1,0 +1,478 @@
+---
+title: "ND Alumni Locator"
+subtitle: ""
+author: "Cristian T"
+date: last-modified
+format: 
+   html:
+    title-block-banner: "#0C2340"
+    df-print: paged
+    embed-resources: true
+    editor: visual
+    highlight-style: "tango"
+    code-copy: true
+    code-overflow: wrap
+toc: true
+toc-location: left
+toc-title: "Table of Contents"
+toc-expand: 4
+code-block-bg: true
+code-block-border-left: "#C99700"
+editor:
+  markdown:
+    wrap: 80
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+set.seed(1842)
+
+
+library(shiny)
+library(bslib)
+library(leaflet)
+library(DT)
+library(dplyr)
+library(stringdist)
+
+```
+
+### Project Overview:
+This project was initiated as a proof of concept based on a discussion during an alumni meeting, where the idea of creating a way to locate alums close to conferences for potential meetups was suggested. The goal was to provide an easy-to-use tool to identify alums in proximity to conferences, helping them connect and engage during events.
+
+### Key Considerations:
+
+- **Initial Approach:** The project was initially started with Shiny Assistant, which served as the foundation. However, it was later reworked to enhance functionality, refine the user experience, and tailor the tool to meet specific needs for alum meetups.
+- **Data Collection via Google Forms:** Alumni data is gathered through a Google Form, where alums can opt in to be contacted. The form captures essential information, such as name, email, phone number, city, and state. This opt-in mechanism ensures that alums are willing to participate in meetups.
+- **Geocoding for Lat/Lon:** To correctly identify and display alumni on the map, their geographic coordinates (latitude and longitude) are needed. For this purpose, geocoding lines could be implemented to automatically populate the CSV file with accurate latitude and longitude values based on the city and state provided by alumni.
+- **Conference Location Integration:** One potential feature for future development is the ability to add a conference name with city and state. This would allow the tool to locate alums in that area, making it easier for them to meet up during the event. Alternatively, functionality could be added to display who is planning to attend a specific event. However, this feature might be more challenging to implement and may require additional data or integration with event registration systems.
+- **Mobile Accessibility:** Given the use case (meeting at conferences), it might be helpful to ensure that the app is mobile-friendly, allowing alums to access the map and contact information on the go easily.
+- Alumni Feedback: Gather feedback to evaluate the tool's effectiveness and understand any improvements or features that would better meet alums's needs.
+- **Advanced Search:** Besides filtering by city and state, allow alums to filter by professional interests, industry, company, or job titles to connect with others in their field.
+- **Mapping Tool:** While Leaflet is a great simple choice, we could explore using Google Maps API for more advanced geospatial functionalities.
+
+### Next Steps:
+
+- Further development of the conference location functionality could provide a more direct connection between alums and events, enhancing the overall utility of the platform.
+- Refining the data collection process and ensuring geocoding is automated will be crucial for scaling the tool and ensuring accuracy in alum location mapping.
+
+### POC
+```{r}
+
+# Read alumni data from CSV file
+alumni_data <- read.csv("/Users/cristian/Downloads/alumni_list2.csv", 
+                        stringsAsFactors = FALSE, 
+                        colClasses = c(phone = "character"))
+
+# Function to calculate distance between two points using Haversine formula
+calculate_distance <- function(lat1, lng1, lat2, lng2) {
+  # Convert degrees to radians
+  lat1 <- lat1 * pi / 180
+  lng1 <- lng1 * pi / 180
+  lat2 <- lat2 * pi / 180
+  lng2 <- lng2 * pi / 180
+  
+  # Haversine formula for distance between two points on Earth
+  dlat <- lat2 - lat1
+  dlng <- lng2 - lng1
+  a <- sin(dlat/2)^2 + cos(lat1) * cos(lat2) * sin(dlng/2)^2
+  c <- 2 * asin(sqrt(a))
+  r <- 3959  # Earth's radius in miles
+  
+# Return the calculated distance
+  return(c * r)
+}
+
+# UI Layout
+ui <- fluidPage(
+  titlePanel("Alumni Network Map"),
+  textOutput("alumni_total"), # Display total number of alumni
+  sidebarLayout(
+    sidebarPanel(
+      textInput("search_city", "City:", placeholder = "e.g., South Bend"), # Input field for city
+      textInput("search_state", "State:", placeholder = "e.g., IN"), # Input field for state
+      radioButtons("radius", "Search Radius (miles):",
+                   choices = list("10" = 10, "25" = 25, "50" = 50, "100" = 100), # Radius selection
+                   selected = 25),
+      actionButton("search_btn", "Search Alumni", class = "btn-primary"),
+      br(),
+      textOutput("result_count"), # Display number of results
+      br()
+    ),
+    mainPanel(
+      leafletOutput("map", height = "600px"), # Render Map
+      br(),
+      DTOutput("alumni_table") # Display results
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  
+  # Reactive values to store search results
+  search_results <- reactiveVal(data.frame())
+  search_center <- reactiveVal(list(lat = 39.8283, lng = -98.5795))  # Center of US
+  
+  # Initialize map with all alumni markers 
+  output$map <- renderLeaflet({
+    leaflet() %>%
+      addTiles() %>%
+      setView(
+        lng = mean(alumni_data$lon, na.rm = TRUE), # Set initial lon view
+        lat = mean(alumni_data$lat, na.rm = TRUE), # Set initial lat view
+        zoom = 4 # Zoom Level
+      ) %>%
+      addMarkers(
+        data = alumni_data, # Add markers for each alumni
+        lng = ~lon, lat = ~lat,
+        popup = ~paste( # Create a popup for each marker
+          "<b>", full_name, "</b><br>",
+          city, ", ", state, "<br>",
+          phone, "<br>", email
+        )
+      )
+  })
+  
+  # Display the total number of alumni in the network
+  output$alumni_total <- renderText({
+    paste("There are", nrow(alumni_data), "alumni in this network.")
+  })
+  
+  # Search functionality triggered by the "Search Alumni" button
+  observeEvent(input$search_btn, {
+  req(input$search_city, input$search_state)
+
+  # Fuzzy matching for city to handle typos or variations
+  # Search functionality triggered by the "Search Alumni" button
+  # Convert imput to lowercase and find closet city match
+  city_list <- unique(alumni_data$city)
+  user_input <- tolower(input$search_city)
+  closest_city_index <- amatch(user_input, tolower(city_list), maxDist = 3)
+  closest_city <- city_list[closest_city_index]
+
+  # If no close match, show warning and stop search
+  if (is.na(closest_city)) {
+    showNotification("No city found. Please check your spelling.", type = "warning")
+    return()
+  }
+
+  # Filter alumni using closest city and state
+  matches <- alumni_data %>%
+    filter(
+      tolower(city) == tolower(closest_city),
+      tolower(state) == tolower(input$search_state)
+    )
+
+  # If no matches, show warning
+  if (nrow(matches) == 0) {
+    showNotification("No alumni found in that city/state.", type = "warning")
+    return()
+  }
+
+# Calculate center coordinates for the search results (average lat/lon of matching alumni)
+  center_lat <- mean(matches$lat)
+  center_lon <- mean(matches$lon)
+
+  showNotification("Searching for location...", type = "message", duration = 2)
+
+# Clean alumni data by removing rows with missing lat or lon
+  alumni_data_cleaned <- alumni_data %>%
+    filter(!is.na(lat) & !is.na(lon))
+
+  # Calculate distances and filter alumni within the selected radius
+  # Calculate distance for each alum and filter
+  alumni_with_distance <- alumni_data_cleaned %>%
+    rowwise() %>%
+    mutate(
+      distance = calculate_distance(lat, lon, center_lat, center_lon)
+    ) %>%
+    filter(distance <= as.numeric(input$radius)) %>%
+    arrange(distance)
+
+# If no alumni are found within the radius, show a warning
+  if (nrow(alumni_with_distance) == 0) {
+    showNotification("No alumni found within the selected radius.", type = "warning")
+    return()
+  }
+
+# Update search results with filtered alumni data
+  search_results(alumni_with_distance)
+
+# Update the map with the filtered alumni data and search results
+# Add markers and convert miles to meters for the circle
+  leafletProxy("map") %>%
+    clearMarkers() %>%
+    clearShapes() %>%
+    setView(lng = center_lon, lat = center_lat, zoom = 8) %>%
+    addMarkers(
+      lng = center_lon, lat = center_lat, 
+      popup = paste("<b>Search Location:</b><br>", closest_city, ",", input$search_state)
+    ) %>%
+    addCircles(
+      lng = center_lon, lat = center_lat, 
+      radius = as.numeric(input$radius) * 1609.34,
+      color = "blue", fillColor = "blue", fillOpacity = 0.1,
+      popup = paste("Search radius:", input$radius, "miles")
+    ) %>%
+    addMarkers(
+      data = alumni_with_distance,
+      lng = ~lon, lat = ~lat,
+      popup = ~paste(
+        "<b>", full_name, "</b><br>",
+        city, ",", state, "<br>",
+        "Distance:", round(distance, 1), "miles<br>"
+      )
+    )
+
+# Show a success notification with the number of alumni found
+  showNotification(
+    paste("Found", nrow(alumni_with_distance), "alumni within", input$radius, "miles"),
+    type = "message"
+  )
+})
+
+  
+# Display the result count on the filtered alumni data
+  output$result_count <- renderText({
+    results <- search_results()
+    if (nrow(results) == 0) {
+      "No alumni found in search area."
+    } else {
+      paste("Found", nrow(results), "alumni within", input$radius, "miles")
+    }
+  })
+  
+  # Display filtered alumni table
+  output$alumni_table <- renderDT({
+  results <- search_results()
+  if (nrow(results) > 0) {
+    display_data <- results %>%
+      select(full_name, city, state, distance, email, phone) %>%
+      mutate(distance = round(distance, 1)) %>%
+      rename(
+        Name = full_name,
+        City = city,
+        State = state,
+        "Distance (miles)" = distance,
+        Email = email,
+        Phone = phone
+      )
+    datatable(
+      display_data, 
+      options = list(pageLength = 10, dom = 't'),
+      rownames = FALSE
+    ) %>%
+      formatRound("Distance (miles)", digits = 1)
+  }
+})
+  
+} 
+
+# Run the application
+shinyApp(ui, server)
+
+```
+
+
+### Shiny Assistance Code
+Promt: how do I create an interactive map that shows the location of alumni. there should a place to add a state and city and the results would search in a 10, 25, 50, 100 radius to locate alumni for face to face meetups. the popup for the alumni should have a name, email, and phone.
+```{r eval=FALSE, include=FALSE}
+library(shiny)
+library(bslib)
+library(leaflet)
+library(DT)
+library(dplyr)
+library(geosphere)
+
+# Sample alumni data (replace with your actual CSV file)
+# In practice, you would load this with: alumni_data <- read.csv("alumni_data.csv")
+alumni_data <- data.frame(
+  name = c("John Smith", "Sarah Johnson", "Mike Brown", "Lisa Davis", "Tom Wilson", 
+           "Amy Chen", "David Martinez", "Jennifer Lee", "Robert Taylor", "Maria Garcia"),
+  email = c("john.smith@email.com", "sarah.j@email.com", "mike.brown@email.com", 
+            "lisa.davis@email.com", "tom.wilson@email.com", "amy.chen@email.com",
+            "david.m@email.com", "jennifer.lee@email.com", "robert.t@email.com", "maria.g@email.com"),
+  phone = c("(555) 123-4567", "(555) 234-5678", "(555) 345-6789", "(555) 456-7890", 
+            "(555) 567-8901", "(555) 678-9012", "(555) 789-0123", "(555) 890-1234",
+            "(555) 901-2345", "(555) 012-3456"),
+  city = c("New York", "Los Angeles", "Chicago", "Houston", "Phoenix", 
+           "Philadelphia", "San Antonio", "San Diego", "Dallas", "Austin"),
+  state = c("NY", "CA", "IL", "TX", "AZ", "PA", "TX", "CA", "TX", "TX"),
+  latitude = c(40.7128, 34.0522, 41.8781, 29.7604, 33.4484, 
+               39.9526, 29.4241, 32.7157, 32.7767, 30.2672),
+  longitude = c(-74.0060, -118.2437, -87.6298, -95.3698, -112.0740, 
+                -75.1652, -98.4936, -117.1611, -96.7970, -97.7431),
+  opt_in_contact = c(TRUE, TRUE, FALSE, TRUE, TRUE, TRUE, FALSE, TRUE, TRUE, TRUE),
+  stringsAsFactors = FALSE
+)
+
+# Function to get coordinates for a city/state combination
+get_coordinates <- function(city, state) {
+  # This is a simplified version. In a real app, you might use a geocoding service
+  # For demo purposes, using some major city coordinates
+  city_coords <- data.frame(
+    city = c("New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "Philadelphia", 
+             "San Antonio", "San Diego", "Dallas", "Austin", "Miami", "Boston", "Seattle"),
+    state = c("NY", "CA", "IL", "TX", "AZ", "PA", "TX", "CA", "TX", "TX", "FL", "MA", "WA"),
+    lat = c(40.7128, 34.0522, 41.8781, 29.7604, 33.4484, 39.9526, 29.4241, 32.7157, 
+            32.7767, 30.2672, 25.7617, 42.3601, 47.6062),
+    lng = c(-74.0060, -118.2437, -87.6298, -95.3698, -112.0740, -75.1652, -98.4936, 
+            -117.1611, -96.7970, -97.7431, -80.1918, -71.0589, -122.3321)
+  )
+  
+  match_idx <- which(city_coords$city == city & city_coords$state == state)
+  if (length(match_idx) > 0) {
+    return(list(lat = city_coords$lat[match_idx], lng = city_coords$lng[match_idx]))
+  }
+  return(NULL)
+}
+
+ui <- page_sidebar(
+  title = "Alumni Network Map",
+  sidebar = sidebar(
+    card(
+      card_header("Search Location"),
+      textInput("search_city", "City:", placeholder = "e.g., Austin"),
+      selectInput("search_state", "State:", 
+                  choices = c("", state.abb),
+                  selected = ""),
+      radioButtons("radius", "Search Radius (miles):",
+                   choices = list("10" = 10, "25" = 25, "50" = 50, "100" = 100),
+                   selected = 25),
+      actionButton("search_btn", "Search Alumni", class = "btn-primary")
+    ),
+    card(
+      card_header("Search Results"),
+      textOutput("result_count"),
+      br(),
+      DTOutput("alumni_table")
+    )
+  ),
+  card(
+    card_header("Alumni Locations"),
+    leafletOutput("map", height = "600px")
+  )
+)
+
+server <- function(input, output, session) {
+  # Reactive values to store search results
+  search_results <- reactiveVal(data.frame())
+  search_center <- reactiveVal(list(lat = 39.8283, lng = -98.5795))  # Center of US
+  
+  # Initialize map
+  output$map <- renderLeaflet({
+    leaflet() %>%
+      addTiles() %>%
+      setView(lng = -98.5795, lat = 39.8283, zoom = 4)
+  })
+  
+  # Search functionality
+  observeEvent(input$search_btn, {
+    req(input$search_city, input$search_state)
+    
+    # Get coordinates for search location
+    coords <- get_coordinates(input$search_city, input$search_state)
+    
+    if (is.null(coords)) {
+      showNotification("Location not found. Please try a different city/state combination.", 
+                      type = "warning")
+      return()
+    }
+    
+    search_center(coords)
+    
+    # Calculate distances and filter alumni
+    alumni_with_distance <- alumni_data %>%
+      rowwise() %>%
+      mutate(
+        distance = distHaversine(c(longitude, latitude), 
+                               c(coords$lng, coords$lat)) * 0.000621371  # Convert to miles
+      ) %>%
+      filter(distance <= as.numeric(input$radius)) %>%
+      arrange(distance)
+    
+    search_results(alumni_with_distance)
+    
+    # Update map
+    leafletProxy("map") %>%
+      clearMarkers() %>%
+      clearShapes() %>%
+      setView(lng = coords$lng, lat = coords$lat, zoom = 8) %>%
+      # Add search center marker
+      addMarkers(lng = coords$lng, lat = coords$lat, 
+                popup = paste("<b>Search Location:</b><br>", 
+                            input$search_city, ",", input$search_state),
+                icon = makeIcon(
+                  iconUrl = "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+                  iconWidth = 25, iconHeight = 41,
+                  iconAnchorX = 12, iconAnchorY = 41
+                )) %>%
+      # Add search radius circle
+      addCircles(lng = coords$lng, lat = coords$lat, 
+                radius = as.numeric(input$radius) * 1609.34,  # Convert miles to meters
+                color = "blue", fillColor = "blue", fillOpacity = 0.1,
+                popup = paste("Search radius:", input$radius, "miles")) %>%
+      # Add alumni markers
+      addMarkers(data = alumni_with_distance,
+                lng = ~longitude, lat = ~latitude,
+                popup = ~paste(
+                  "<b>", name, "</b><br>",
+                  city, ",", state, "<br>",
+                  "Distance:", round(distance, 1), "miles<br>",
+                  if_else(opt_in_contact, 
+                         paste("Email:", email, "<br>Phone:", phone), 
+                         "Contact info not available")
+                ))
+  })
+  
+  # Update result count
+  output$result_count <- renderText({
+    results <- search_results()
+    if (nrow(results) == 0) {
+      "No alumni found in search area."
+    } else {
+      paste("Found", nrow(results), "alumni within", input$radius, "miles")
+    }
+  })
+  
+  # Display alumni table
+  output$alumni_table <- renderDT({
+    results <- search_results()
+    if (nrow(results) > 0) {
+      display_data <- results %>%
+        select(name, city, state, distance) %>%
+        mutate(distance = round(distance, 1)) %>%
+        rename(
+          Name = name,
+          City = city,
+          State = state,
+          "Distance (miles)" = distance
+        )
+      
+      datatable(display_data, 
+                options = list(pageLength = 10, dom = 't'),
+                rownames = FALSE) %>%
+        formatRound("Distance (miles)", digits = 1)
+    }
+  })
+  
+  # Show initial alumni locations on map load
+  observe({
+    # Show all alumni on initial load
+    leafletProxy("map") %>%
+      addMarkers(data = alumni_data,
+                lng = ~longitude, lat = ~latitude,
+                popup = ~paste(
+                  "<b>", name, "</b><br>",
+                  city, ",", state, "<br>",
+                  if_else(opt_in_contact, 
+                         paste("Email:", email, "<br>Phone:", phone), 
+                         "Contact info not available")
+                ))
+  })
+}
+
+shinyApp(ui, server)
+```
+
+
