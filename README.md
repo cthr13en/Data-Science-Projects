@@ -20,7 +20,7 @@ This project is a proof-of-concept Shiny application designed to help University
 
 
 
-# ND Skills Assessment
+# Nonresident Doctorate Recipient Analysis
 This project involves analyzing the trends in nonresident doctorate recipients at the University of Notre Dame compared to its peers in the Association of American Universities (AAU) private institutions. Using data from the Integrated Postsecondary Education Data System (IPEDS) from 2011–2013 and 2021–2023, this analysis focuses on the percentage of doctorates awarded to nonresident students, exploring growth patterns, institutional variations, and demographic distributions across different fields of study. The goal is to understand how Notre Dame has evolved in attracting international doctoral talent and how it compares to its peers within the AAU private research university cohort. [View ND Skills Assessment Analysis](https://github.com/cthr13en/Data-Science-Projects/tree/main/Assessment)
 
 ## R Packages Used
