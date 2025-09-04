@@ -33,7 +33,7 @@ This project involves analyzing the trends in nonresident doctorate recipients a
 - `viridis`
 
 
-# Idaho Department of Education
+# Special Education Analysis
 This project involves analyzing the proficiency rates of Special Education students in Idaho, specifically focusing on the percentage of students scoring at or above Proficient on the Idaho Standards Achievement Test (ISAT). The goal is to examine proficiency trends over time (2014–2017) and identify key insights, including performance improvements, school-level variations, and potential data anomalies, such as outliers. The findings aim to support data-driven decisions and strategic planning for improving education outcomes. [View Idaho Department of Education Analysis](https://github.com/cthr13en/Data-Science-Projects/tree/main/Idaho%20Department%20of%20Education)
 
 ## R Packages Used
